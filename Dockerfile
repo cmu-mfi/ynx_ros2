@@ -79,10 +79,7 @@ ENV ROBOT_MODEL=nex10
 ENV ROBOT_IP=192.168.19.201
 ENV ROBOT_PORT=50300
 ENV USE_MOCK_HARDWARE=true
-ENV USE_FT_SENSOR=false
-ENV FT_SENSOR_IP=192.168.19.210
 ENV LAUNCH_SERVO=true
-ENV LAUNCH_RVIZ=false
 
 # Entrypoint sources the workspaces; `bringup` arg launches the default bringup.
 RUN chmod +x /ws/src/ynx_ros2/entrypoint.sh

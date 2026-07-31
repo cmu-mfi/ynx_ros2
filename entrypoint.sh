@@ -18,10 +18,9 @@ if [ "$1" = "bringup" ]; then
         ip:=${ROBOT_IP}
         port:=${ROBOT_PORT}
         use_mock_hardware:=${USE_MOCK_HARDWARE}
-        use_ft_sensor:=${USE_FT_SENSOR}
-        ft_sensor_ip:=${FT_SENSOR_IP}
         launch_servo:=${LAUNCH_SERVO}
-        launch_rviz:=${LAUNCH_RVIZ}
+        launch_rviz:=false
+        use_ft_sensor:=false        
     )
     if [ -n "${ROBOT_NS}" ]; then
         ARGS+=(ns:=${ROBOT_NS})
