@@ -1,1 +1,4 @@
 __pycache__/
+
+# Local env file (keep .env.example tracked instead)
+.env

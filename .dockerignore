@@ -1,0 +1,21 @@
+.git
+.gitignore
+__pycache__/
+*.pyc
+*.pyo
+
+# colcon build artifacts (in case of local builds)
+build/
+install/
+log/
+
+# docker / env files themselves (entrypoint.sh is NOT excluded; it is needed in the image)
+.env
+.env.example
+Dockerfile
+.dockerignore
+
+# editor / os cruft
+.vscode/
+.idea/
+.DS_Store
