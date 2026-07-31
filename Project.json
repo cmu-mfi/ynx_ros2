@@ -1,0 +1,12 @@
+{
+  "name": "YNX_ROS2",
+  "description": "ROS2 package for YNX robots.",
+  "version": "0.1.0",
+  "developer": "Yaskawa Motoman Inc.",
+  "contact": "support@motoman.com",
+  "volume": "",
+  "bind": "",
+  "use_gpus": "true",
+  "explorer_bind": "/pss/shared",
+  "forwarding_ports": "22219:22, 61619:61616"
+}
