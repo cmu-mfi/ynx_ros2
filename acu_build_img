@@ -93,9 +93,9 @@ function ExistsDockerImages() {
 function BuildDockerImage() {
   printInfo "Starting docker build..."
   if [ $ENABLE_VERBOSE -eq 0 ]; then
-    sudo DOCKER_BUILDKIT=1 docker build --progress=plain --platform linux/arm64 ./ -f "$1" -t "$2" --no-cache > /dev/null 2>&1
+    sudo DOCKER_BUILDKIT=1 docker build --progress=plain --platform linux/arm64 ./ -f "$1" -t "$2" > /dev/null 2>&1
   else
-    sudo DOCKER_BUILDKIT=1 docker build --platform linux/arm64 ./ -f "$1" -t "$2" --no-cache
+    sudo DOCKER_BUILDKIT=1 docker build --platform linux/arm64 ./ -f "$1" -t "$2" 
   fi
   ret=$?
   if [ $ret -ne 0 ]; then
