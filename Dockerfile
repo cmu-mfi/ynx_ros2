@@ -13,7 +13,7 @@
 # Override individual launch args (appended to the bringup command):
 #   docker run --rm --env-file .env ynx_ros2 bringup use_mock_hardware:=false ip:=192.168.19.201
 
-FROM osrf/ros:jazzy-desktop
+FROM arm64v8/ros:jazzy-ros-base
 
 # Avoid interactive tzdata/geo prompts during apt installs
 ENV DEBIAN_FRONTEND=noninteractive
