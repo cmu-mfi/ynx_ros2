@@ -77,3 +77,9 @@ Below is a breakdown of the available example scripts:
 ros2 run ynx_examples joint_goal_example --ros-args -p ns:=nex10
 ```
 
+
+## Build ACU docker image
+
+```
+sudo ./acu_build_img -i ynx_ros2 -t <tag>  -v
+```
