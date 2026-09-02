@@ -90,30 +90,6 @@ def launch_setup(context):
             }
 
     # Robot Manager
-    ynx_robot_manager = Node(
-        package='ynx_robot_manager',
-        executable='ynx_robot_manager',
-        namespace=ns,
-        output='screen',
-        parameters=[
-            robot_description,
-            robot_description_semantic,
-            kinematics,
-            joint_limits,
-            planning_scene_parameters,
-            {
-                'ns': ns,
-                'tf_prefix': tf_prefix,
-            },
-        ],
-        arguments=[
-            '--ros-args', 
-            '--log-level', 
-            log_level
-        ]
-    )
-    
-    # EE State Publisher
     ee_state_publisher = Node(
         package='ynx_robot_manager',
         executable='ee_state_publisher',
@@ -135,16 +111,16 @@ def launch_setup(context):
             '--log-level', 
             log_level
         ]
-    )    
+    )
 
-    return [ynx_robot_manager, ee_state_publisher]
+    return [ee_state_publisher]
 
 def generate_launch_description():
     declared_arguments = []
     declared_arguments.append(
             DeclareLaunchArgument(
                 'log_level',
-                default_value='error',
+                default_value='info',
                 description="Log Level to use for all nodes",
                 choices=["info", "debug", "error"],
                 )
