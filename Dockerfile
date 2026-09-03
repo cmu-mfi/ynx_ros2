@@ -5,10 +5,11 @@
 #   docker build -t ynx_ros2 .
 #
 # Run (mock hardware, no real robot needed):
-#   docker run --rm --env-file .env ynx_ros2
+#   docker run --rm -p 2222:22 --env-file .env ynx_ros2
+#   (Connect via SSH: ssh root@localhost -p 2222 | Password: root)
 #
 # Drop into a shell (workspace already sourced):
-#   docker run --rm -it ynx_ros2 bash
+#   docker run --rm -it -p 2222:22 ynx_ros2 bash
 #
 # Override individual launch args (appended to the bringup command):
 #   docker run --rm --env-file .env ynx_ros2 bringup use_mock_hardware:=false ip:=192.168.19.201
@@ -33,6 +34,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         python3-rosdep \
         git \
         bash-completion \
+        net-tools \
+        iputils-ping \
     && rm -rf /var/lib/apt/lists/*
 
 # Initialise rosdep if not already done (base image may have it initialised)
@@ -81,7 +84,27 @@ ENV ROBOT_PORT=50300
 ENV USE_MOCK_HARDWARE=true
 ENV LAUNCH_SERVO=true
 
-# Entrypoint sources the workspaces; `bringup` arg launches the default bringup.
+# --- 8. SSH Server Setup ----------------------------------------------------------
+# Install openssh-server, set root password to 'root', and configure sshd
+RUN apt-get update && apt-get install -y openssh-server \
+    && mkdir /var/run/sshd \
+    && echo 'root:root' | chpasswd \
+    && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
+    && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config \
+    && rm -rf /var/lib/apt/lists/*
+
+EXPOSE 22
+
+# --- 9. Entrypoint ----------------------------------------------------------------
 RUN chmod +x /ws/src/ynx_ros2/entrypoint.sh
-ENTRYPOINT ["/ws/src/ynx_ros2/entrypoint.sh"]
+
+# Create a wrapper script to start the SSH daemon in the background before executing the main entrypoint
+RUN cat > /ws/entrypoint_wrapper.sh <<'EOF'
+#!/bin/bash
+service ssh start
+exec /ws/src/ynx_ros2/entrypoint.sh "$@"
+EOF
+RUN chmod +x /ws/entrypoint_wrapper.sh
+
+ENTRYPOINT ["/ws/entrypoint_wrapper.sh"]
 CMD ["bringup"]
