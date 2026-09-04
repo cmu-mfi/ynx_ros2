@@ -1,0 +1,262 @@
+#!/bin/bash
+
+#############################################
+# 定数の宣言
+#############################################
+#プロジェクト名取得(カレントディレクトリ名)
+readonly PROJECT_NAME=${PWD##*/}
+#Project.json
+readonly PROJECT_JSON="Project.json"
+#License ディレクトリ
+readonly LICENSE_DIR="license"
+#テンポラリDockerイメージファイル名
+TMP_IMAGE_NAME="image"
+#テンポラリ作業ディレクトリ
+TMP_WORK_DIR=$(mktemp -d "/tmp/${0##*/}.tmp.XXXXXX")
+#途中出力フラグ
+ENABLE_VERBOSE=0
+
+#############################################
+# エラー出力
+#############################################
+function printError() {
+    echo -e "\e[31m[ERROR]\e[m $1" >&2
+}
+
+#############################################
+# 警告出力
+#############################################
+function printWarn() {
+    echo -e "\e[33m[WARNING]\e[m $1" >&2
+}
+
+
+#############################################
+# 情報出力
+#############################################
+function printInfo() {
+    echo -e "\e[32m[INFO ]\e[m $1"
+}
+
+#############################################
+# ヘルプ表示
+#############################################
+function showHelp() {
+    echo -e "\e[1mName\e[m"
+    echo -e "\tacu_build_img - This is script to build a docker image to run in ACU."
+    echo -e "" # put a empty line
+    echo -e "\e[1mSYNOPSIS\e[m"
+    echo -e "\t./acu_build_img"
+    echo -e ""
+    echo -e "\e[1mDESCRIPTION\e[m"
+    echo -e "\t If you don't specify any option, use the Dockerfile in current diretory and the export into current directory as \"directory_name\".tar"
+    echo -e ""
+    echo -e "\e[1mOPTIONS\e[m"
+    echo -e "\t-r | --recipe <path/to/Dockerfile>"
+    echo -e "\t    Specify a Dockerfile path"
+    echo -e ""
+    echo -e "\t-i | --image <image_name>"
+    echo -e "\t    Specify output image name"
+    echo -e ""
+    echo -e "\t-t | --tag <image_tag>"
+    echo -e "\t    Specify output image tag"
+    echo -e ""
+    echo -e "\t-v | --verbose"
+    echo -e "\t    Show datail verbose logs"
+    echo -e ""
+    echo -e "\t-h | --help"
+    echo -e "\t    Show help"
+    return
+}
+
+#############################################
+# docker images 対象イメージ存在判定
+#############################################
+function ExistsDockerImages() {
+  arg=$1
+  sudo docker images | while read LINE
+  do
+    rep=`echo ${LINE} | awk '{print $1}'`
+    tag=`echo ${LINE} | awk '{print $2}'`
+    if [ "$arg" == "$rep" ]; then
+      return 1
+      break
+    fi
+  done
+}
+
+#############################################
+# docker build
+# $1: docker_file
+# $2: image_tag
+#############################################
+function BuildDockerImage() {
+  printInfo "Starting docker build..."
+  if [ $ENABLE_VERBOSE -eq 0 ]; then
+    sudo DOCKER_BUILDKIT=1 docker build --progress=plain --platform linux/arm64 ./ -f "$1" -t "$2" > /dev/null 2>&1
+  else
+    sudo DOCKER_BUILDKIT=1 docker build --platform linux/arm64 ./ -f "$1" -t "$2" 
+  fi
+  ret=$?
+  if [ $ret -ne 0 ]; then
+    printError "docker build failed"
+    exit $ret
+  fi
+  printInfo "Complete docker build"
+}
+
+#############################################
+# docker rmi
+# $1: image_tag
+#############################################
+function RemoveDockerImageFromResistory() {
+  if [ $ENABLE_VERBOSE -eq 0 ]; then
+    sudo docker rmi -f "$1" > /dev/null 2>&1
+  else
+    sudo docker rmi -f "$1"
+  fi
+  ret=$?
+  if [ $ret -ne 0 ]; then
+    printError "docker rmi $1 failed"
+    exit $ret
+  fi
+}
+
+#############################################
+# docker save
+# $1: image_tag
+# $2: destination (ex. /tmp/hoge.tar)
+#############################################
+function SaveDockerImageAsTarball() {
+  sudo docker save "$1" > $2
+  ret=$?
+  if [ $ret -ne 0 ]; then
+    printError "docker save $1 failed"
+    exit $ret
+  fi
+}
+
+#############################################
+# Main処理
+#############################################
+#引数の確認と抽出
+while (( "$#" > 0 ))
+do
+  case "$1" in
+    #recipe-fileの指定
+    -r | --recipe)
+      if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+        echo "'option' requires an argument."
+        exit 1
+      else
+        recipe_file="$2"
+        shift
+      fi
+      ;;
+    #image-nameの指定
+    -i | --image)
+      if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+        echo "'option' requires an argument."
+        exit 1
+      else
+        image_name="$2"
+        shift
+      fi
+      ;;
+    #tag-nameの指定
+    -t | --tag)
+      if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+        echo "'option' requires an argument."
+        exit 1
+      else
+        tag_name="$2"
+        shift
+      fi
+      ;;
+    #詳細表示するかの指定
+    -v | --verbose)
+      ENABLE_VERBOSE=1
+      shift
+      ;;
+    #ヘルプの表示
+    -h | --help)
+      showHelp
+      exit 1
+      ;;
+    #無効な引数の指定
+    -*)
+      echo "invalid option"
+      exit 1
+      ;;
+  esac
+  shift
+done
+
+#[recipe-file]の指定があるか
+if [ -n "$recipe_file" ]; then
+  docker_file=$recipe_file
+else
+  docker_file="Dockerfile"
+fi
+
+#docker_fileの存在チェック
+if [ ! -e "$docker_file" ]; then
+  printError "$docker_file does not exist"
+  exit 1
+fi
+
+#Project.jsonがカレントディレクトリに存在するか確認
+if [ ! -e "$PROJECT_JSON" ]; then
+  printError "$PROJECT_JSON does not exist"
+  exit 1
+fi
+
+#イメージ名の生成
+if [ -z "$image_name" ]; then
+  image_name=$PROJECT_NAME
+  printWarn "A image name is not specified. \"$PROJECT_NAME\" is used as image name."
+fi
+
+if [ -z "$tag_name" ]; then
+  printWarn "A tag name is not specified. \"latest\" is used as tag."
+  tag_name="latest"
+fi
+
+image_tag="$image_name":"$tag_name"
+
+printInfo "Target Docker image: $image_tag"
+
+#イメージの保存
+SaveDockerImageAsTarball $image_tag "$TMP_WORK_DIR/$TMP_IMAGE_NAME.tar"
+
+#イメージの保存結果確認
+if [ ! -e "$TMP_WORK_DIR/$TMP_IMAGE_NAME.tar" ]; then
+  printError "Failed to save $IMAGE_NAME.tar"
+  exit 1
+fi
+
+#Project.jsonを作業ディレクトリにコピー
+cp $PROJECT_JSON $TMP_WORK_DIR
+
+#License ディレクトリが存在するかを確認
+if [ -d "$LICENSE_DIR" ]; then
+  printInfo "License directory found"
+  # License ディレクトリを作業ディレクトリにコピー
+  cp -r "$LICENSE_DIR" "$TMP_WORK_DIR/$LICENSE_DIR"
+fi
+
+#イメージの圧縮
+dst_pkg_name="$image_name-$tag_name.tar"
+printInfo "Compressing docker image and Project.json into $dst_pkg_name"
+current_dir=$(pwd)
+tar -C $TMP_WORK_DIR -cvf ${current_dir}/$dst_pkg_name . > /dev/null 2>&1
+
+#圧縮ファイルの結果確認
+if [ ! -e $dst_pkg_name ]; then
+  printError "Failed to save $dst_pkg_name"
+  exit 1
+fi
+
+printInfo "Success to create an ACU runtime image: $dst_pkg_name"
+
+exit 0
