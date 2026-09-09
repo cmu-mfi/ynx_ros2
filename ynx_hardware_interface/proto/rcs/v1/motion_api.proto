@@ -44,6 +44,8 @@ service TargetControlService {
     rpc SendJointMotionTarget(SendJointMotionTargetRequest) returns (SendJointMotionTargetResponse);
     // Sends a target position and motion attributes for linear motion. Returns the `target id` to trace the motion.
     rpc SendLinearMotionTarget(SendLinearMotionTargetRequest) returns (SendLinearMotionTargetResponse);
+    // Sends multiple target positions and motions attributes for joint and linear motion. Returns the `target id` to trace the motion.
+    rpc SendMultipleMotionTargets(SendMultipleMotionTargetsRequest) returns (SendMultipleMotionTargetsResponse);
     // Clear the `Target`s in the queue. If `Target`s are cleared in running, the motion will stop immediately.
     rpc ClearTarget(ClearTargetRequest) returns (ClearTargetResponse);
     // Get the status of `Target` by `target id`. The status includes running status and progress of the `Target`.
@@ -99,6 +101,15 @@ service IncrementMoveService {
     rpc SetIncrementMove(SetIncrementMoveRequest) returns (SetIncrementMoveResponse);
 }
 
+service IncrementMoveBufferService {
+    // The robot can be operated by sending incremental values in interpolation cycles.
+    rpc StartIncrementMoveBuffer(StartIncrementMoveBufferRequest) returns (StartIncrementMoveBufferResponse);
+    // Stop incremental movement of the robot.
+    rpc StopIncrementMoveBuffer(StopIncrementMoveBufferRequest) returns (StopIncrementMoveBufferResponse);
+    // Set the incremental movement amount for each interpolation cycle for groups.
+    rpc SendIncrementMoveBuffer(SendIncrementMoveBufferRequest) returns (SendIncrementMoveBufferResponse);
+}
+
 enum SendTargetResponseStatus {
     SEND_TARGET_RESPONSE_STATUS_UNSPECIFIED = 0;
     SEND_TARGET_RESPONSE_STATUS_SUCCESS = 1;
@@ -135,6 +146,52 @@ enum SendTargetResponseStatus {
     SEND_TARGET_RESPONSE_STATUS_SYNC_MASTER_GROUP_LACK = 37; // The master group's target is not included.
     SEND_TARGET_RESPONSE_STATUS_TIMEOUT_OUTRANGE = 38; // Specified `timeout`` is out of range.
     SEND_TARGET_RESPONSE_STATUS_BLENDING_TYPE_INTERPOLATION_ILLEGAL = 39; // Specified `BlendingControl` and interpolation type is not suported.
+    SEND_TARGET_RESPONSE_STATUS_NOT_PLAY_MODE = 40; // Mode of robot controller is not play mode.
+    SEND_TARGET_RESPONSE_STATUS_NOT_EQUAL_COORDINATES_OF_DST_AND_REF = 41; // Coordinates of distination and reference position are not equal for MOVC.
+}
+
+enum SendMultiTargetResponseStatus {
+    SEND_MULTI_TARGET_RESPONSE_STATUS_UNSPECIFIED = 0;
+    SEND_MULTI_TARGET_RESPONSE_STATUS_SUCCESS = 1;
+    SEND_MULTI_TARGET_RESPONSE_STATUS_UNKNOWN_ERROR = 2;
+    SEND_MULTI_TARGET_RESPONSE_STATUS_NUMBER_OF_TARGETS_EXCEEDED = 3; // The length of `targets` exceeds the the number of configured groups.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_GROUP_DOES_NOT_EXIST = 4; // Specified value in `group_no` does not exist.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_TARGETS_GROUP_NO_DUPLICATE = 5; // The `targets` have target including duplicated `group_no`.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_TARGET_FIELD_ERROR = 6; // `target` field have wrong value.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_SPEED_FILED_ERROR = 7; // `speed` field have wrong value.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_SPEED_TYPE_INTERPOLATION_ILLEGAL = 8; // Specified value in `speed` type is not supported with specified `interpolation_type`.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_SPEED_TYPE_OUTRANGE = 9; // Specified value in `speed` type is not supported.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_FRAME_AUX_NO_MISSING = 10; // `frame_aux_no` is required for `user` target, but missing.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_FRAME_AUX_NO_OUTRANGE = 11; // Specified value in `frame_aux_no` is out of range.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_POS_TYPE_OUTRAGNE = 12; // Specified pos type in `TargetPos` is not supported.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_TOOL_NO_OUTRANGE = 13; // Specified value in `tool.number` is out of range.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_BLENDING_TYPE_OUTRANGE = 14; // Specified value in `blending.control` is not supported.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_ACCELERATION_RATIO_OUTRANGE = 15; // Specified value in `acc.ratio` is out of range.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_DECELERATION_RATIO_OUTRANGE = 16; // Specified value in `dec.ratio` is out of range.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_REFERENCE_TYPE_OUTRANGE = 17; // Specified value in `reference.type` is not supported.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_INTERPOLATION_TYPE_CONFLICT = 20; // Specified value in `interpolation_type` conflicts with other attributes.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_SYNC_SLAVE_GROUP_TYPE_NOT_SUPPORTED = 21; // Specified group as a slave is unsupported group type for a slave group.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_SYNC_MASTER_GROUP_TYPE_NOT_SUPPORTED = 22; // Specified group as a master is unsupported group type for a master group.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_SYNC_MASTER_GROUP_NO_OUTRANGE = 23; // Specified master group number is illegal.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_TASK_NO_OUTRANGE = 24; // Specified value in `task.number` is out of range.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_BASE_TARGET_LACK = 25; // `targets` does not include a target for base group.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_INTERPOLATION_TYPE_ILLEGAL = 26; // Specified `interpolation_type` is not supported for the group specified in `group_no`.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_SYNC_SLAVE_GROUP_INTERPOLATION_TYPE_NOT_SUPPORTED = 27; // The `interpolation_type` for the slave group is not supported.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_SYNC_MASTER_GROUP_INTERPOLATION_TYPE_NOT_SUPPORTED = 28; // The `interpolation_type` for the master group is not supported.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_SYNC_GROUP_EXCEEDED = 29; // Exceeded number of coordinated motion group pair which must be one master and one slave group.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_SPEED_VALUE_ILLEGAL = 33; // Invalid speed value is specified.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_TASK_NO_MISSING = 34; // Task number is specified only for some targets. If set task number, task number must be set for all targets.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_TIMEOUT = 35; // Target send request is not received until timeout.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_POS_TYPE_NOT_SUPPORTED = 36; // Specified pos type is not supported.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_SYNC_MASTER_GROUP_LACK = 37; // The master group's target is not included.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_TIMEOUT_OUTRANGE = 38; // Specified `timeout`` is out of range.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_BLENDING_TYPE_INTERPOLATION_ILLEGAL = 39; // Specified `BlendingControl` and interpolation type is not suported.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_NUMBER_OF_TIMELINES_INVALID = 40; // The number of timelines must be larger than zero.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_NUMBER_OF_ENTITIES_INVALID = 41; // The number of entities must be larger than zero. The number of entities in each timelines must be consistent.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_NOT_PLAY_MODE = 42; // Mode of robot controller is not play mode.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_NUMBER_OF_TIMELINES_OUTRANGE = 43; // The number of timelines is out of range.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_NOT_EQUAL_COORDINATES_OF_DST_AND_REF = 44; // Coordinates of distination and reference position are not equal for MOVC.
+    SEND_MULTI_TARGET_RESPONSE_STATUS_TARGET_TYPE_IS_NOT_MATCH_WITH_SPECIFIED_INTERPOLATION = 45; // The target type is not match with specified interpolation.
 }
 
 enum ReferenceType {
@@ -188,13 +245,33 @@ message PowerOffServosResponse {
 }
 
 message TargetPos {
-
     oneof pos {
         PulsePos pulse = 1; // `PULSE` frame target.
         AxesPos angle = 2; // `ANGLE` frame target.
         CartesianPos base = 3; // `BASE` frame target.
         CartesianPos robot = 4; // `ROBOT` frame target.
         CartesianPos user = 5; // `USER` frame target.
+    }
+
+    // This member is required if you use `user` as the `position`.
+    optional int32 frame_aux_no = 11;
+}
+
+message CircularTargetPos {
+    oneof dst {
+        PulsePos pulse = 1; // `PULSE` frame target.
+        AxesPos angle = 2; // `ANGLE` frame target.
+        CartesianPos base = 3; // `BASE` frame target.
+        CartesianPos robot = 4; // `ROBOT` frame target.
+        CartesianPos user = 5; // `USER` frame target.
+    }
+
+    oneof ref {
+        PulsePos ref_pulse = 6; // `PULSE` frame target.
+        AxesPos ref_angle = 7; // `ANGLE` frame target.
+        CartesianPos ref_base = 8; // `BASE` frame target.
+        CartesianPos ref_robot = 9; // `ROBOT` frame target.
+        CartesianPos ref_user = 10; // `USER` frame target.
     }
 
     // This member is required if you use `user` as the `position`.
@@ -297,6 +374,62 @@ message SendLinearMotionTargetResponse {
     SendTargetResult result = 2;
 
     SendTargetResponseStatus status = 3;
+}
+
+message MultiTargetsEntity {
+    int32 group_no = 1;
+    oneof targets {
+        TargetPos target = 2; // Specify if the `interpolation` is JOINT or LINEAR.
+        CircularTargetPos cir_target = 3; // Specify if the `interpolation` is CIRCULAR.
+    }
+
+    enum Interpolation {
+        NOP = 0;    // NO Operation
+        JOINT = 1;  // Joint interpolation
+        LINEAR = 2; // Linear interpolation
+        CIRCULAR = 3; // Not suported yet
+    }
+    Interpolation interpolation = 4;
+
+    JointSpeedAttr joint_speed = 5; // Specify if the `interpolation` is JOINT. In linear or circular motion, this will be ignored.
+    LinearSpeedAttr linear_speed = 6; // Specify if the `interpolation` is LINEAR or CIRCULAR. In joint motion, this will be ignored.
+
+    optional TaskAttr task = 10; // If not specified, the task number is automatically assigned to be able to run as much as possible in parallel.
+    optional ToolAttr tool = 11; // The default tool number is `0`.
+    optional AccAttr acc = 12; // The acceleration of the motion. The default is `100` %. The min is `20` % and the max is `100` %.
+    optional DecAttr dec = 13; // The deceleration of the motion. The default is `100` %. The min is `20` % and the max is `100` %.
+    optional BlendingAttr blending = 14; // The default control is `BLENDING_DEFAULT` and the distance is as much as possible.
+    optional RelativeAttr relative = 15; // If not specified, the target position is used as ABSOLUTE position.
+    optional SynchronizationAttr synchronization = 16;
+}
+
+message MultiTargetsTimeline {
+    repeated MultiTargetsEntity entities = 2;
+}
+
+//    R1    B1    R2    B2    <- group number
+// [ MOVJ  MOVJ   NOP   NOP ] <- timeline
+// [  NOP   NOP  MOVJ  MOVJ ]
+// [ MOVL  MOVJ  MOVL  MOVJ ]
+//    ^-----^-----^-----^------- entity
+//
+//  Each timelines must be composed of same a number of groups. It means the length of entities must be same across all timelines.
+
+message SendMultipleMotionTargetsRequest {
+    optional int32 timeout = 1;
+    repeated MultiTargetsTimeline timelines = 2; // The targets list of each control groups 
+}
+
+message SendTargetResultTimeline {
+    repeated SendTargetResult results = 1;
+}
+
+message SendMultipleMotionTargetsResponse {
+    Timestamp timestamp = 1;
+
+    repeated SendTargetResultTimeline result_timelines = 2;
+
+    SendMultiTargetResponseStatus status = 3;
 }
 
 message ClearTargetRequest {
@@ -497,4 +630,103 @@ message SetIncrementMoveResponse {
         STATUS_CALLED_BEFORE_READY = 24; // Called before execution of `StartIncrementMove()` is completed.
     }
     Status status = 2;
+}
+
+message StartIncrementMoveBufferRequest {
+    uint32 control_group_bit = 1; // Specify the control group you want to move by bit. For example, if you want to move group 0 and group 1, please set 0b00000011.
+    optional int32 task_no = 2; // Set `task_no` if you want. If `task_no` is not set, it is determined automatically
+    int32 trigger = 3; // if trigger is greater than 0, the increment move is not started until the number of queued increment value is greater than `trigger`.
+}
+
+message StartIncrementMoveBufferResponse {
+    Timestamp timestamp = 1;
+
+    enum Status {
+        STATUS_UNSPECIFIED = 0;
+        STATUS_SUCCESS = 1;
+        STATUS_UNKNOWN_ERROR = 2;
+        STATUS_GROUP_DOES_NOT_EXIST = 3; // Specified control group does not exist.
+        STATUS_TASK_NO_OVER = 4; // The limit of motion parallelization is over.
+        STATUS_COMBO_GROUP_LACK = 5; // If you want to move a robot and it has base, the base group is also specified with the robot group and vice versa.
+        STATUS_GROUP_NO_OVER = 6; // Specified number of control groups is over.
+        STATUS_GROUP_USED = 7; // Specified group has been controlled already by other services or something else.
+        STATUS_GROUP_UNMATCHED = 8; // Specified group has been already started.
+        STATUS_READY_TIMEOUT = 9; // Failed to change state to ready for increment move in a certain time.
+    }
+    Status status = 2;
+
+    // The `task_no` is allocated task number in the controller.
+    // The control groups which has different task number can move asynchronously.
+    // This `task_no` will be released when the StopIncrementMoveBuffer() is called, servo power is disabled and something else.
+    int32 task_no = 3;
+}
+
+message StopIncrementMoveBufferRequest {
+    // The `task_no` will be provided by `StartIncrementMoveBuffer()`.
+    int32 task_no = 1;
+}
+
+message StopIncrementMoveBufferResponse {
+    Timestamp timestamp = 1;
+
+    enum Status {
+        STATUS_UNSPECIFIED = 0;
+        STATUS_SUCCESS = 1;
+        STATUS_UNKNOWN_ERROR = 2;
+        STATUS_TASK_NO_OVER = 3; // The task number is over the limit.
+    }
+    Status status = 2;
+}
+
+message SendIncrementMoveBufferRequest {
+    int32 task_no = 1; // The task number assigned by `StartIncrementMoveBuffer()`.
+    int32 timeout = 2; // Timeout duration. If set to -1, the request will wait indefinitely.
+    int32 group_num = 3; // The number of control groups included in this request.
+    int32 position_num = 4; // The number of positions (increments) specified for each group.
+    optional bool is_eop = 5; // Indicates whether this request marks the end of the path.
+    repeated IncrementMoveGroupRequest requests = 6; // A flattened list of increment values for all groups.
+                                                     // When specifying multiple increment values for multiple control groups,
+                                                     // the data should be flattened from a 2D structure into a 1D array.
+                                                     // For example, if you want to send increments [3, 4, 5] to group 0 and [6, 7, 8] to group 1,
+                                                     // the flattened array would be [3, 6, 4, 7, 5, 8].
+}
+
+message SendIncrementMoveBufferResponse {
+    Timestamp timestamp = 1;
+
+    enum Status {
+        STATUS_UNSPECIFIED = 0;
+        STATUS_SUCCESS = 1;
+        STATUS_UNKNOWN_ERROR = 2;
+        STATUS_GROUP_DOES_NOT_EXIST = 3; // Specified control group does not exist.
+        STATUS_GROUP_NO_DUPLICATE = 4; // The `group_no` in the requests are duplicate.
+        STATUS_GROUP_NO_INCONSISTENT = 5; // The same group number is specified twice or more in one position.
+        STATUS_TASK_NO_OVER = 6; // The limit of motion parallelization is over.
+        STATUS_GROUP_DOES_NOT_READY = 7; // The group have not started by `StartIncrementMoveBufferBuffer()`.
+        STATUS_MASTER_GROUP_DOES_NOT_EXIST = 8; // Specified master group number does not exist in the controller.
+        STATUS_MASTER_GROUP_NOT_READY = 9; // Specified master group have not started by `StartIncrementMoveBuffer()`.
+        STATUS_MASTER_GROUP_TYPE_NOT_SUPPORTED = 10; // Specified master group type is not supported to be master group.
+        STATUS_SLAVE_GROUP_TYPE_NOT_SUPPORTED = 11; // Specified slave group type is not supported to be slave group.
+        STATUS_MASTER_GROUP_SPECIFY_ERROR = 12; // Specified master group was itself. For example, the base group specified its robot group as the master group.
+        STATUS_MULTIPLE_MASTER_GROUP = 13; // Multiple groups were specified as master group.
+        STATUS_MASTER_OR_SLAVE_GROUP_LACK = 14; // Master group or slave group lacked.
+        STATUS_TOOL_NO_OUTRANGE = 15; // The tool number is out of range or illegal.
+        STATUS_POS_TYPE_OUTRANGE = 16; // The position type is not supported for increment move.
+        STATUS_POS_TYPE_UNSUPPORTED = 17; // The position type is not supported for increment move.
+        STATUS_FRAME_AUX_NO_OUTRANGE = 18; // The frame aux no (ex. user frame number) is out of range or illegal.
+        STATUS_TIMEOUT = 19; // Execution could not be completed during the specified in `timeout`.
+        STATUS_CALLED_BEFORE_READY = 20; // Called before execution of `StartIncrementMoveBuffer()` is completed.
+        STATUS_BUFFER_NO_SPACE_AVAILABLE = 21; // Not enough available space in the buffer.
+        STATUS_RUN_FAILED = 22; // Increment move is failed in start.
+        STATUS_NUMBER_OF_GROUP_OUTRANGE = 23; // Specified the number of groups is out of range.
+        STATUS_NUMBER_OF_POSITIONS_OUTRANGE = 24; // Specified the number of groups is out of range.
+        STATUS_NUMBER_OF_REQUESTS_UNMATCHED = 25; // The number of requests is less than the number of groups * the number of positions.
+        STATUS_SYNC_CTRL_ILLEGAL = 26; // Specified synchrnous control is invalid.
+        STATUS_FRAME_AUX_NO_MISSING = 27; // The frame aux no (ex. user frame number) is not specified.
+        STATUS_POS_TYPE_ILLEGAL = 28; // Specified position type is invalid.
+    }
+
+    Status status = 2;
+    repeated uint32 id = 3; // Increment move value ID.
+    uint32 count = 4; // Available count in the buffer.
 }
