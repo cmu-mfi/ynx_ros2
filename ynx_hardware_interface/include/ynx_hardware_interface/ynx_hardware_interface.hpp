@@ -74,7 +74,7 @@ private:
   // --- gRPC Objects ---
   std::shared_ptr<grpc::Channel> grpc_channel_;
   std::unique_ptr<rcs::v1::RealtimeMonitorService::Stub> monitor_stub_;
-  std::unique_ptr<rcs::v1::IncrementMoveService::Stub> motion_stub_;
+  std::unique_ptr<rcs::v1::IncrementMoveBufferService::Stub> motion_stub_;
   std::unique_ptr<rcs::v1::ServoPowerControlService::Stub> servo_stub_;
   std::unique_ptr<rcs::v1::AlarmControlService::Stub> alarm_stub_;
   std::unique_ptr<rcs::v1::SystemInfoService::Stub> system_stub_;

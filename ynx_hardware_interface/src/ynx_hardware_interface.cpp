@@ -37,7 +37,7 @@ namespace ynx_hardware_interface
     grpc_channel_ = grpc::CreateChannel(ip_ + ":" + port_, grpc::InsecureChannelCredentials());
     // Create gRPC stubs
     monitor_stub_ = rcs::v1::RealtimeMonitorService::NewStub(grpc_channel_);
-    motion_stub_ = rcs::v1::IncrementMoveService::NewStub(grpc_channel_);
+    motion_stub_ = rcs::v1::IncrementMoveBufferService::NewStub(grpc_channel_);
     servo_stub_ = rcs::v1::ServoPowerControlService::NewStub(grpc_channel_);
     alarm_stub_ = rcs::v1::AlarmControlService::NewStub(grpc_channel_);
     system_stub_ = rcs::v1::SystemInfoService::NewStub(grpc_channel_);
@@ -112,18 +112,21 @@ namespace ynx_hardware_interface
     }
     RCLCPP_INFO(rclcpp::get_logger("YnxHardwareInterface"), "[ACTIVATION] States synced succesfully!");
 
-    // Start Increment Move
+    // Start Increment Move Buffer
     grpc::ClientContext motion_context;
-    rcs::v1::StartIncrementMoveRequest motion_req;
-    rcs::v1::StartIncrementMoveResponse motion_res;
-    motion_req.set_control_group_bit(control_group_bit_);
-    grpc::Status status = motion_stub_->StartIncrementMove(&motion_context, motion_req, &motion_res);
+    rcs::v1::StartIncrementMoveBufferRequest motion_req;
+    rcs::v1::StartIncrementMoveBufferResponse motion_res;
 
-    if (status.ok() && motion_res.status() == rcs::v1::StartIncrementMoveResponse::STATUS_SUCCESS) {
+    motion_req.set_control_group_bit(control_group_bit_);
+    motion_req.set_trigger(0); // 0 starts motion immediately without waiting for queued buffer threshold
+
+    grpc::Status status = motion_stub_->StartIncrementMoveBuffer(&motion_context, motion_req, &motion_res);
+
+    if (status.ok() && motion_res.status() == rcs::v1::StartIncrementMoveBufferResponse::STATUS_SUCCESS) {
       task_no_ = motion_res.task_no();
-      RCLCPP_INFO(rclcpp::get_logger("YnxHardwareInterface"), "[ACTIVATION] Increment Motion started succesfully!");
+      RCLCPP_INFO(rclcpp::get_logger("YnxHardwareInterface"), "[ACTIVATION] Increment Motion Buffer started successfully!");
     } else {
-      RCLCPP_ERROR(rclcpp::get_logger("YnxHardwareInterface"), "[ACTIVATION] Failed to start Increment Move. Status: %d", motion_res.status());
+      RCLCPP_ERROR(rclcpp::get_logger("YnxHardwareInterface"), "[ACTIVATION] Failed to start Increment Move Buffer. Status: %d", motion_res.status());
       return hardware_interface::CallbackReturn::ERROR;
     }
 
@@ -133,12 +136,12 @@ namespace ynx_hardware_interface
   hardware_interface::CallbackReturn YnxHardwareInterface::on_deactivate(const rclcpp_lifecycle::State & /*previous_state*/) {
     if (task_no_ >= 0) {
       grpc::ClientContext context;
-      rcs::v1::StopIncrementMoveRequest req;
-      rcs::v1::StopIncrementMoveResponse res;
+      rcs::v1::StopIncrementMoveBufferRequest req;
+      rcs::v1::StopIncrementMoveBufferResponse res;
 
       req.set_task_no(task_no_);
 
-      motion_stub_->StopIncrementMove(&context, req, &res);
+      motion_stub_->StopIncrementMoveBuffer(&context, req, &res);
       task_no_ = -1;
     }
 
@@ -214,17 +217,21 @@ namespace ynx_hardware_interface
       return hardware_interface::return_type::ERROR;
     }
 
-    // create incremental motion request
+    // Create incremental motion buffer request
     grpc::ClientContext context;
-    rcs::v1::SetIncrementMoveRequest req;
-    rcs::v1::SetIncrementMoveResponse res;
+    rcs::v1::SendIncrementMoveBufferRequest req;
+    rcs::v1::SendIncrementMoveBufferResponse res;
+
     req.set_task_no(task_no_);
     req.set_timeout(100); 
+    req.set_group_num(1);     // Number of control groups in this request
+    req.set_position_num(1);  // Number of positions per group in this request
+
     rcs::v1::IncrementMoveGroupRequest* group_req = req.add_requests();
     group_req->set_group_no(group_no_);
     rcs::v1::AxesPos* angle_pos = group_req->mutable_angle();
 
-    // calculate the angle position delta
+    // Calculate the angle position delta
     for (uint i = 0; i < info_.joints.size(); i++) {
       double delta_rad = position_commands_[i] - previous_position_commands_[i];
       previous_position_commands_[i] = position_commands_[i];
@@ -232,12 +239,12 @@ namespace ynx_hardware_interface
       angle_pos->add_pos(delta_deg);
     }
 
-    // Send the incremental movement 
-    grpc::Status status = motion_stub_->SetIncrementMove(&context, req, &res);
+    // Send the incremental movement buffer
+    grpc::Status status = motion_stub_->SendIncrementMoveBuffer(&context, req, &res);
 
-    if (!status.ok() || res.status() != rcs::v1::SetIncrementMoveResponse::STATUS_SUCCESS) {
+    if (!status.ok() || res.status() != rcs::v1::SendIncrementMoveBufferResponse::STATUS_SUCCESS) {
       RCLCPP_ERROR(rclcpp::get_logger("YnxHardwareInterface"), 
-          "[WRITE] Failed to set Increment Move. gRPC ok: %d, Response status: %d", 
+          "[WRITE] Failed to send Increment Move Buffer. gRPC ok: %d, Response status: %d", 
           status.ok(), res.status());
       return hardware_interface::return_type::ERROR;
     }
