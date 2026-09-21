@@ -70,6 +70,41 @@
         </state_interface>
       </joint>
 
+    <!-- General Digital I/O Ports 1-10 -->
+      <gpio name="gpio_io">
+        <!-- Inputs 1 through 10 -->
+        <state_interface name="digital_input_1"/>
+        <state_interface name="digital_input_2"/>
+        <state_interface name="digital_input_3"/>
+        <state_interface name="digital_input_4"/>
+        <state_interface name="digital_input_5"/>
+        <state_interface name="digital_input_6"/>
+        <state_interface name="digital_input_7"/>
+        <state_interface name="digital_input_8"/>
+        <state_interface name="digital_input_9"/>
+        <state_interface name="digital_input_10"/>
+        <!-- Outputs 1 through 10 -->
+        <command_interface name="digital_output_1"/>
+        <state_interface name="digital_output_1"/>
+        <command_interface name="digital_output_2"/>
+        <state_interface name="digital_output_2"/>
+        <command_interface name="digital_output_3"/>
+        <state_interface name="digital_output_3"/>
+        <command_interface name="digital_output_4"/>
+        <state_interface name="digital_output_4"/>
+        <command_interface name="digital_output_5"/>
+        <state_interface name="digital_output_5"/>
+        <command_interface name="digital_output_6"/>
+        <state_interface name="digital_output_6"/>
+        <command_interface name="digital_output_7"/>
+        <state_interface name="digital_output_7"/>
+        <command_interface name="digital_output_8"/>
+        <state_interface name="digital_output_8"/>
+        <command_interface name="digital_output_9"/>
+        <state_interface name="digital_output_9"/>
+        <command_interface name="digital_output_10"/>
+        <state_interface name="digital_output_10"/>
+      </gpio>
     </ros2_control>
   </xacro:macro>
 </robot>

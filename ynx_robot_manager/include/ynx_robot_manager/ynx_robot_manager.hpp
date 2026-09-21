@@ -16,6 +16,8 @@
 #include "robot_manager_interfaces/srv/set_payload.hpp"
 #include "robot_manager_interfaces/srv/set_io.hpp"
 #include "geometry_msgs/msg/wrench_stamped.hpp"
+#include "control_msgs/msg/dynamic_interface_group_values.hpp"
+#include "control_msgs/msg/interface_value.hpp"
 
 namespace ynx_robot_manager
 {
@@ -67,6 +69,7 @@ namespace ynx_robot_manager
       // Set Io Service
       rclcpp::Service<SetIo>::SharedPtr set_io_service_;
       void set_io_service_callback(const std::shared_ptr<SetIo::Request> request, std::shared_ptr<SetIo::Response> response);
+      rclcpp::Publisher<control_msgs::msg::DynamicInterfaceGroupValues>::SharedPtr gpio_command_publisher_;
 
       // Publish ft
       rclcpp::Subscription<WrenchStamped>::SharedPtr input_wrench_subscriber_;
