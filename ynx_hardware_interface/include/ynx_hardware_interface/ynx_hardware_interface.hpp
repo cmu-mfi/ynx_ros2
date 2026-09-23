@@ -64,9 +64,9 @@ private:
   std::vector<double> previous_position_states_;
   std::vector<double> velocity_states_;
   // Add member buffers for I/O ports 1-10
-  std::vector<double> gpio_input_states_ = std::vector<double>(10, 0.0);
-  std::vector<double> gpio_output_states_ = std::vector<double>(10, 0.0);
-  std::vector<double> gpio_output_commands_ = std::vector<double>(10, 0.0);
+  std::vector<double> gpio_input_states_ = std::vector<double>(16, 0.0);
+  std::vector<double> gpio_output_states_ = std::vector<double>(16, 0.0);
+  std::vector<double> gpio_output_commands_ = std::vector<double>(16, 0.0);
   
   // --- gRPC Objects ---
   std::shared_ptr<grpc::Channel> grpc_channel_;

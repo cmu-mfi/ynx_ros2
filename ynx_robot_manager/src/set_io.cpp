@@ -9,8 +9,8 @@ namespace ynx_robot_manager
     int pin = request->pin;
     int state = request->state;
 
-    // Validate pin range (1 to 10)
-    if (pin < 1 || pin > 10) {
+    // Validate pin range (1 to 16)
+    if (pin < 1 || pin > 16) {
       RCLCPP_ERROR(this->get_logger(), "[Set Io Service] Invalid Pin: %d. Must be between 1 and 10.", pin);
       response->success = false;
       response->message = "Io update failed: Invalid pin range (1-10 allowed).";

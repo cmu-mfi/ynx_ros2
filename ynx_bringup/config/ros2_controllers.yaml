@@ -17,39 +17,60 @@
   ros__parameters:
     gpios:
       - gpio_io
-    gpio_io:
-      command_interfaces:
-        - digital_output_1
-        - digital_output_2
-        - digital_output_3
-        - digital_output_4
-        - digital_output_5
-        - digital_output_6
-        - digital_output_7
-        - digital_output_8
-        - digital_output_9
-        - digital_output_10
-      state_interfaces:
-        - digital_input_1
-        - digital_input_2
-        - digital_input_3
-        - digital_input_4
-        - digital_input_5
-        - digital_input_6
-        - digital_input_7
-        - digital_input_8
-        - digital_input_9
-        - digital_input_10
-        - digital_output_1
-        - digital_output_2
-        - digital_output_3
-        - digital_output_4
-        - digital_output_5
-        - digital_output_6
-        - digital_output_7
-        - digital_output_8
-        - digital_output_9
-        - digital_output_10
+    command_interfaces:
+      gpio_io:
+        interfaces:
+          - digital_output_1
+          - digital_output_2
+          - digital_output_3
+          - digital_output_4
+          - digital_output_5
+          - digital_output_6
+          - digital_output_7
+          - digital_output_8
+          - digital_output_9
+          - digital_output_10
+          - digital_output_11
+          - digital_output_12
+          - digital_output_13
+          - digital_output_14
+          - digital_output_15
+          - digital_output_16
+    state_interfaces:
+      gpio_io:
+        interfaces:
+          - digital_input_1
+          - digital_input_2
+          - digital_input_3
+          - digital_input_4
+          - digital_input_5
+          - digital_input_6
+          - digital_input_7
+          - digital_input_8
+          - digital_input_9
+          - digital_input_10
+          - digital_input_11
+          - digital_input_12
+          - digital_input_13
+          - digital_input_14
+          - digital_input_15
+          - digital_input_16
+          - digital_output_1
+          - digital_output_2
+          - digital_output_3
+          - digital_output_4
+          - digital_output_5
+          - digital_output_6
+          - digital_output_7
+          - digital_output_8
+          - digital_output_9
+          - digital_output_10
+          - digital_output_11
+          - digital_output_12
+          - digital_output_13
+          - digital_output_14
+          - digital_output_15
+          - digital_output_16
 
 /**/joint_trajectory_controller:
   ros__parameters:
