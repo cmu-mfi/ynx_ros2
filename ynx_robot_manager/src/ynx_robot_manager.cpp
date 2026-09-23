@@ -70,6 +70,8 @@ namespace ynx_robot_manager
         rclcpp::QoS(rclcpp::KeepLast(10)).reliable().durability_volatile(),
         service_cb_group_
         );
+    gpio_command_publisher_ = this->create_publisher<control_msgs::msg::DynamicInterfaceGroupValues>(
+        "gpio_command_controller/commands", rclcpp::QoS(10));
     // --- FT Publisher ---
     input_wrench_subscriber_ = this->create_subscription<WrenchStamped>(
         "force_torque_sensor_broadcaster/wrench", 

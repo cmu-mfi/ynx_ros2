@@ -134,6 +134,16 @@ def launch_setup(context):
                 ]
             ))
 
+    nodes.append(Node(
+        package="controller_manager",
+        executable="spawner",
+        namespace=ns,
+        arguments=[
+            "gpio_command_controller",
+            "--ros-args", "--log-level", log_level,
+            ]
+        ))
+
     return nodes
 
 def generate_launch_description():
