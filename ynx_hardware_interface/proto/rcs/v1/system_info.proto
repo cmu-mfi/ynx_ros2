@@ -31,6 +31,10 @@ service SystemInfoService {
     rpc GetGroupProperties(GetGroupPropertiesRequest) returns (GetGroupPropertiesResponse);
     // Get calendar information of robot controller
     rpc GetCalendar(GetCalendarRequest) returns (GetCalendarResponse);
+    // Get group id.
+    rpc GetGroupId(GetGroupIdRequest) returns (GetGroupIdResponse);
+    // Get robot properties that include group id, combo number and common base information.
+    rpc GetGroupPropertiesEx(GetGroupPropertiesExRequest) returns (GetGroupPropertiesExResponse);
 }
 
 message GetFirmwareVersionRequest {
@@ -169,11 +173,11 @@ message GroupProperties {
     // You can determine the index of array by using `axis_bit`.
     // For example, `axis_bit` is `5(0b00000101)` means that max_axis_limits[0] and max_axis_limits[2] are enabled.
     // You can determine unit of array by using `axis_types`.
-    // The units for each axis are deg/sec for 'ROTATE' and mm/sec for 'LINEAR'.
+    // The units for each axis are deg/sec for `ROTATE` and mm/sec for `LINEAR`.
     repeated double max_joint_speeds = 11;
 
     // The max axis limits.
-    // The units for each axis are degree for 'ROTATE' and mm for 'LINEAR'.
+    // The units for each axis are degree for `ROTATE` and mm for `LINEAR`.
     repeated double max_axis_limits = 12;
 
     // The min axis limits.
@@ -215,4 +219,152 @@ message GetCalendarResponse {
         STATUS_UNKNOWN_ERROR = 2;
     }
     Status status = 9;
+}
+
+message GetGroupIdRequest {
+    int32 group_no = 1;
+}
+
+enum GroupId {
+    GROUP_ID_UNSPECIFIED = 0;
+    GROUP_ID_R1  = 1;
+    GROUP_ID_R2  = 2;
+    GROUP_ID_R3  = 3;
+    GROUP_ID_R4  = 4;
+    GROUP_ID_R5  = 5;
+    GROUP_ID_R6  = 6;
+    GROUP_ID_R7  = 7;
+    GROUP_ID_R8  = 8;
+    GROUP_ID_B1  = 9;
+    GROUP_ID_B2  = 10;
+    GROUP_ID_B3  = 11;
+    GROUP_ID_B4  = 12;
+    GROUP_ID_B5  = 13;
+    GROUP_ID_B6  = 14;
+    GROUP_ID_B7  = 15;
+    GROUP_ID_B8  = 16;
+    GROUP_ID_S1  = 17;
+    GROUP_ID_S2  = 18;
+    GROUP_ID_S3  = 19;
+    GROUP_ID_S4  = 20;
+    GROUP_ID_S5  = 21;
+    GROUP_ID_S6  = 22;
+    GROUP_ID_S7  = 23;
+    GROUP_ID_S8  = 24;
+    GROUP_ID_S9  = 25;
+    GROUP_ID_S10 = 26;
+    GROUP_ID_S11 = 27;
+    GROUP_ID_S12 = 28;
+    GROUP_ID_S13 = 29;
+    GROUP_ID_S14 = 30;
+    GROUP_ID_S15 = 31;
+    GROUP_ID_S16 = 32;
+    GROUP_ID_S17 = 33;
+    GROUP_ID_S18 = 34;
+    GROUP_ID_S19 = 35;
+    GROUP_ID_S20 = 36;
+    GROUP_ID_S21 = 37;
+    GROUP_ID_S22 = 38;
+    GROUP_ID_S23 = 39;
+    GROUP_ID_S24 = 40;
+}
+
+message GetGroupIdResponse {
+    Timestamp timestamp = 1;
+
+    GroupId id = 2;
+
+    enum Status {
+        STATUS_UNSPECIFIED = 0;
+        STATUS_SUCCESS = 1;
+        STATUS_UNKNOWN_ERROR = 2;
+        STATUS_GROUP_NO_OUTRANGE = 3;
+    }
+    Status status = 3;
+}
+
+message GroupPropertiesEx {
+    // The group name.
+    // For example, N1-06VX10-A0*(NEX10-A0*).
+    string group_name = 1;
+
+    // The group id.
+    GroupId id = 2;
+
+    // The type code of group
+    enum GroupType {
+        GROUP_TYPE_UNSPECIFIED = 0;
+        GROUP_TYPE_ROBOT = 1;
+        GROUP_TYPE_BASE = 2;
+        GROUP_TYPE_STATION = 3;
+    }
+    GroupType group_type = 3;
+
+    // The group no paired with the group specified in the request.
+    int32 pair_group_no = 7;
+
+    // The number of axis.
+    int32 axis_num = 8;
+
+    // The `axis bit` indicates enabled elements within axis data array. The LSB indicates the first axis, S-axis.
+    // For example, if the `axis_bit` is `(0b00100111)`, the fourth axis(R-axis) and fifth axis(B-axis) are blank in array data.
+    uint32 axis_bit = 9;
+
+    // The group indicates shared base group.
+    // In case of R1/R1/B1/B2 System, if the specified group_no is B1 and the `shared_base_bit` is `(0b00001000)`, B2 (corresponding to 0b00001000) and B1 are a shared base group.
+    // The correspondence in this case is as following: R1: 0b00000001, R2: 0b00000010, B1: 0b00000100, B2: 0b00001000.
+    uint32 shared_base_bit = 10;
+
+    // The `AxisType` indicates the kinematics type of axis.
+    // Note that the size of array is fixed at eight even if the number of axis that group has is less than eight.
+    // You can determine the index of array by using `axis_bit`.
+    // For example, axis_types[0] is `LINEAR`, the first axis is linear axis. And axis_types[2] is `ROTATE`, the third axis is rotate axis.
+
+    // The axis type
+    enum AxisType {
+        AXIS_TYPE_UNSPECIFIED = 0;
+        AXIS_TYPE_UNKNOWN = 1;
+        AXIS_TYPE_ROTATE = 2;
+        AXIS_TYPE_LINEAR = 3;
+    }
+    repeated AxisType axis_types = 11;
+
+    // The max speed for linear motion in mm/sec.
+    double max_linear_speed = 12;
+
+    // The max speed for rotational motion in deg/sec.
+    double max_rotational_speed = 13;
+
+    // The max speed for joint motion.
+    // Note that the size of array is fixed at eight even if the number of axis that group has is less than eight.
+    // You can determine the index of array by using `axis_bit`.
+    // For example, `axis_bit` is `5(0b00000101)` means that max_axis_limits[0] and max_axis_limits[2] are enabled.
+    // You can determine unit of array by using `axis_types`.
+    // The units for each axis are deg/sec for `ROTATE` and mm/sec for `LINEAR`.
+    repeated double max_joint_speeds = 14;
+
+    // The max axis limits.
+    // The units for each axis are degree for `ROTATE` and mm for `LINEAR`.
+    repeated double max_axis_limits = 15;
+
+    // The min axis limits.
+    repeated double min_axis_limits = 16;
+}
+
+message GetGroupPropertiesExRequest {
+    int32 group_no = 1;
+}
+
+message GetGroupPropertiesExResponse {
+    Timestamp timestamp = 1;
+
+    GroupPropertiesEx properties = 2;
+
+    enum Status {
+        STATUS_UNSPECIFIED = 0;
+        STATUS_SUCCESS = 1;
+        STATUS_UNKNOWN_ERROR = 2;
+        STATUS_GROUP_NO_OUTRANGE = 3;
+    }
+    Status status = 3;
 }

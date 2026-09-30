@@ -16,8 +16,8 @@ def launch_setup(context):
     ns = context.launch_configurations['ns']
     tf_prefix = context.launch_configurations['tf_prefix']
     model = context.launch_configurations['model']
-    launch_servo = context.launch_configurations['launch_servo']
-    launch_rviz = context.launch_configurations['launch_rviz']
+    launch_rviz = str(context.launch_configurations["launch_rviz"]).lower()
+    launch_servo = str(context.launch_configurations["launch_servo"]).lower()
 
     # print parameters
     print("")

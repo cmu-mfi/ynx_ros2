@@ -26,6 +26,8 @@ service JobControlService {
     // Job start on the robot controller.
     rpc JobStart(JobStartRequest) returns (JobStartResponse);
     // Wait for job end on the robot controller.
+    // In RCS versions prior to v1.8.0, executing the API while the job was not running would return an "OK" response. However, starting from RCS v1.8.0, the response has changed to "STATUS_JOB_NOT_BUSY".
+    // In RCS versions prior to v1.8.0, when a job was interrupted, the response returned was "STATUS_JOB_NOT_BUSY". However, starting from RCS v1.8.0, the response has changed to "STATUS_TIMEOUT".
     rpc WaitForJobEnd(WaitForJobEndRequest) returns (WaitForJobEndResponse);
 }
 
@@ -76,9 +78,12 @@ message WaitForJobEndResponse {
         STATUS_HOLD_STATUS = 3; // The robot is holding.
         STATUS_ALARM_OCCUR = 4; // There is an error or alarm(s).
         STATUS_SERVO_OFF_STATUS = 5; // The servo is off.
-        STATUS_TIMEOUT = 6; // The waiting timed out or the job is interrupted.
+        STATUS_TIMEOUT = 6; // The waiting timed out.
         STATUS_WAIT_TIME_OUTRANGE = 7; // The specified wait time (`wait_time`) is out of range.
         STATUS_TASK_NO_OUTRANGE = 8; // The specified task number (`task_no`) is out of range.
+        STATUS_JOB_NOT_BUSY = 9; // The specified job is not running.
+        STATUS_NUMBER_OF_JOB_WAIT_REQUESTS_OVER = 10; // The number of job WAIT requests over.
+        STATUS_SUSPEND = 11; // The job is interrupted.
     }
     Status status = 2;
 }

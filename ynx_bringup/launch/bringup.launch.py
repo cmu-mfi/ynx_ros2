@@ -18,11 +18,11 @@ def launch_setup(context):
     model = context.launch_configurations['model']
     ip = context.launch_configurations['ip']
     port = context.launch_configurations['port']
-    use_mock_hardware = context.launch_configurations["use_mock_hardware"]
-    use_ft_sensor = context.launch_configurations['use_ft_sensor']
     ft_sensor_ip = context.launch_configurations['ft_sensor_ip']
-    launch_rviz = context.launch_configurations["launch_rviz"]
-    launch_servo = context.launch_configurations["launch_servo"]
+    use_mock_hardware = str(context.launch_configurations["use_mock_hardware"]).lower()
+    use_ft_sensor = str(context.launch_configurations['use_ft_sensor']).lower()
+    launch_rviz = str(context.launch_configurations["launch_rviz"]).lower()
+    launch_servo = str(context.launch_configurations["launch_servo"]).lower()
 
     # print parameters
     print("")

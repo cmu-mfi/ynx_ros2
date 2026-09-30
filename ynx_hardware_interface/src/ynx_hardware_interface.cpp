@@ -37,10 +37,11 @@ namespace ynx_hardware_interface
     grpc_channel_ = grpc::CreateChannel(ip_ + ":" + port_, grpc::InsecureChannelCredentials());
     // Create gRPC stubs
     monitor_stub_ = rcs::v1::RealtimeMonitorService::NewStub(grpc_channel_);
-    motion_stub_ = rcs::v1::IncrementMoveService::NewStub(grpc_channel_);
+    motion_stub_ = rcs::v1::IncrementMoveBufferService::NewStub(grpc_channel_);
     servo_stub_ = rcs::v1::ServoPowerControlService::NewStub(grpc_channel_);
     alarm_stub_ = rcs::v1::AlarmControlService::NewStub(grpc_channel_);
     system_stub_ = rcs::v1::SystemInfoService::NewStub(grpc_channel_);
+    io_stub_ = rcs::v1::IOService::NewStub(grpc_channel_);
 
     // 2. Perform Connection Check (Handshake)
     grpc::ClientContext context;
@@ -112,18 +113,21 @@ namespace ynx_hardware_interface
     }
     RCLCPP_INFO(rclcpp::get_logger("YnxHardwareInterface"), "[ACTIVATION] States synced succesfully!");
 
-    // Start Increment Move
+    // Start Increment Move Buffer
     grpc::ClientContext motion_context;
-    rcs::v1::StartIncrementMoveRequest motion_req;
-    rcs::v1::StartIncrementMoveResponse motion_res;
-    motion_req.set_control_group_bit(control_group_bit_);
-    grpc::Status status = motion_stub_->StartIncrementMove(&motion_context, motion_req, &motion_res);
+    rcs::v1::StartIncrementMoveBufferRequest motion_req;
+    rcs::v1::StartIncrementMoveBufferResponse motion_res;
 
-    if (status.ok() && motion_res.status() == rcs::v1::StartIncrementMoveResponse::STATUS_SUCCESS) {
+    motion_req.set_control_group_bit(control_group_bit_);
+    motion_req.set_trigger(0); // 0 starts motion immediately without waiting for queued buffer threshold
+
+    grpc::Status status = motion_stub_->StartIncrementMoveBuffer(&motion_context, motion_req, &motion_res);
+
+    if (status.ok() && motion_res.status() == rcs::v1::StartIncrementMoveBufferResponse::STATUS_SUCCESS) {
       task_no_ = motion_res.task_no();
-      RCLCPP_INFO(rclcpp::get_logger("YnxHardwareInterface"), "[ACTIVATION] Increment Motion started succesfully!");
+      RCLCPP_INFO(rclcpp::get_logger("YnxHardwareInterface"), "[ACTIVATION] Increment Motion Buffer started successfully!");
     } else {
-      RCLCPP_ERROR(rclcpp::get_logger("YnxHardwareInterface"), "[ACTIVATION] Failed to start Increment Move. Status: %d", motion_res.status());
+      RCLCPP_ERROR(rclcpp::get_logger("YnxHardwareInterface"), "[ACTIVATION] Failed to start Increment Move Buffer. Status: %d", motion_res.status());
       return hardware_interface::CallbackReturn::ERROR;
     }
 
@@ -133,12 +137,12 @@ namespace ynx_hardware_interface
   hardware_interface::CallbackReturn YnxHardwareInterface::on_deactivate(const rclcpp_lifecycle::State & /*previous_state*/) {
     if (task_no_ >= 0) {
       grpc::ClientContext context;
-      rcs::v1::StopIncrementMoveRequest req;
-      rcs::v1::StopIncrementMoveResponse res;
+      rcs::v1::StopIncrementMoveBufferRequest req;
+      rcs::v1::StopIncrementMoveBufferResponse res;
 
       req.set_task_no(task_no_);
 
-      motion_stub_->StopIncrementMove(&context, req, &res);
+      motion_stub_->StopIncrementMoveBuffer(&context, req, &res);
       task_no_ = -1;
     }
 
@@ -205,6 +209,44 @@ namespace ynx_hardware_interface
       return hardware_interface::return_type::ERROR;
     }
 
+    // Prepare I/O Request for inputs and outputs 
+    grpc::ClientContext io_context;
+    rcs::v1::GetIOStatusRequest io_req;
+    rcs::v1::GetIOStatusResponse io_res;
+    for (uint32_t addr = 10; addr < 18; ++addr) {
+      io_req.add_addresses(addr); // General Inputs
+    }
+    for (uint32_t addr = 20; addr < 28; ++addr) {
+      io_req.add_addresses(addr); // General Inputs
+    }
+    for (uint32_t addr = 10010; addr < 10018; ++addr) {
+      io_req.add_addresses(addr); // General Outputs
+    }
+    for (uint32_t addr = 10020; addr < 10028; ++addr) {
+      io_req.add_addresses(addr); // General Outputs
+    }
+    // Execute gRPC Call
+    grpc::Status io_status = io_stub_->GetIOStatus(&io_context, io_req, &io_res);
+    if (!io_status.ok()) {
+      // Handle gRPC transport level failure
+      RCLCPP_WARN_THROTTLE(
+          rclcpp::get_logger("YnxHardwareInterface"), *this->get_clock(), 2000,
+          "[IO] I/O gRPC call failed. Error Code: %d, Message: %s",
+          io_status.error_code(), io_status.error_message().c_str());
+    } else if (io_res.status() != rcs::v1::GetIOStatusResponse::STATUS_SUCCESS) {
+      // Handle controller API level status error
+      RCLCPP_WARN_THROTTLE(
+          rclcpp::get_logger("YnxHardwareInterface"), *this->get_clock(), 2000,
+          "[READ] GetIOStatus returned non-success response status: %d",
+          static_cast<int>(io_res.status()));
+    } else {
+      // Successfully update internal buffers
+      for (int i = 0; i < 16; ++i) {
+        gpio_input_states_[i] = static_cast<double>(io_res.io_response(i).value());
+        gpio_output_states_[i] = static_cast<double>(io_res.io_response(i + 16).value());
+      }
+    }
+
     return hardware_interface::return_type::OK;
   }
 
@@ -214,17 +256,21 @@ namespace ynx_hardware_interface
       return hardware_interface::return_type::ERROR;
     }
 
-    // create incremental motion request
+    // Create incremental motion buffer request
     grpc::ClientContext context;
-    rcs::v1::SetIncrementMoveRequest req;
-    rcs::v1::SetIncrementMoveResponse res;
+    rcs::v1::SendIncrementMoveBufferRequest req;
+    rcs::v1::SendIncrementMoveBufferResponse res;
+
     req.set_task_no(task_no_);
     req.set_timeout(100); 
+    req.set_group_num(1);     // Number of control groups in this request
+    req.set_position_num(1);  // Number of positions per group in this request
+
     rcs::v1::IncrementMoveGroupRequest* group_req = req.add_requests();
     group_req->set_group_no(group_no_);
     rcs::v1::AxesPos* angle_pos = group_req->mutable_angle();
 
-    // calculate the angle position delta
+    // Calculate the angle position delta
     for (uint i = 0; i < info_.joints.size(); i++) {
       double delta_rad = position_commands_[i] - previous_position_commands_[i];
       previous_position_commands_[i] = position_commands_[i];
@@ -232,14 +278,44 @@ namespace ynx_hardware_interface
       angle_pos->add_pos(delta_deg);
     }
 
-    // Send the incremental movement 
-    grpc::Status status = motion_stub_->SetIncrementMove(&context, req, &res);
+    // Send the incremental movement buffer
+    grpc::Status status = motion_stub_->SendIncrementMoveBuffer(&context, req, &res);
 
-    if (!status.ok() || res.status() != rcs::v1::SetIncrementMoveResponse::STATUS_SUCCESS) {
+    if (!status.ok() || res.status() != rcs::v1::SendIncrementMoveBufferResponse::STATUS_SUCCESS) {
       RCLCPP_ERROR(rclcpp::get_logger("YnxHardwareInterface"), 
-          "[WRITE] Failed to set Increment Move. gRPC ok: %d, Response status: %d", 
+          "[WRITE] Failed to send Increment Move Buffer. gRPC ok: %d, Response status: %d", 
           status.ok(), res.status());
       return hardware_interface::return_type::ERROR;
+    }
+
+    // Write IO ports
+    rcs::v1::SetIOStatusRequest set_io_req;
+    int i = 0;
+    for (uint32_t addr = 10010; addr < 10018; ++addr) {
+      auto* io_req = set_io_req.add_io_request();
+      io_req->set_address(addr);
+      io_req->set_value(static_cast<uint32_t>(gpio_output_commands_[i]));
+      i++;
+    }
+    for (uint32_t addr = 10020; addr < 10028; ++addr) {
+      auto* io_req = set_io_req.add_io_request();
+      io_req->set_address(addr);
+      io_req->set_value(static_cast<uint32_t>(gpio_output_commands_[i]));
+      i++;
+    }
+    if (set_io_req.io_request_size() > 0) {
+      grpc::ClientContext context;
+      context.set_deadline(std::chrono::system_clock::now() + std::chrono::milliseconds(200));
+      rcs::v1::SetIOStatusResponse set_io_res;
+      grpc::Status status = io_stub_->SetIOStatus(&context, set_io_req, &set_io_res);
+      if (!status.ok()) {
+        RCLCPP_ERROR(rclcpp::get_logger("YnxHardwareInterface"),
+            "[IO] SetIOStatus gRPC call failed: %s - will retry.", status.error_message().c_str());
+      } else if (set_io_res.status() != rcs::v1::SetIOStatusResponse::STATUS_SUCCESS) {
+        RCLCPP_ERROR(rclcpp::get_logger("YnxHardwareInterface"),
+            "[IO] SetIOStatus returned non-success response status: %d",
+            static_cast<int>(set_io_res.status()));
+      }
     }
 
     return hardware_interface::return_type::OK;
@@ -247,20 +323,31 @@ namespace ynx_hardware_interface
 
   std::vector<hardware_interface::StateInterface> YnxHardwareInterface::export_state_interfaces() {
     std::vector<hardware_interface::StateInterface> state_interfaces;
+    // Export joint interfaces
     for (uint i = 0; i < info_.joints.size(); i++) {
       state_interfaces.emplace_back(hardware_interface::StateInterface(
             info_.joints[i].name, hardware_interface::HW_IF_POSITION, &position_states_[i]));
       state_interfaces.emplace_back(hardware_interface::StateInterface(
             info_.joints[i].name, hardware_interface::HW_IF_VELOCITY, &velocity_states_[i]));
     }
+    // Export GPIO interfaces for ports 1-16
+    for (size_t i = 0; i < 16; ++i) {
+      state_interfaces.emplace_back("gpio_io", "digital_input_" + std::to_string(i + 1), &gpio_input_states_[i]);
+      state_interfaces.emplace_back("gpio_io", "digital_output_" + std::to_string(i + 1), &gpio_output_states_[i]);
+    }
     return state_interfaces;
   }
 
   std::vector<hardware_interface::CommandInterface> YnxHardwareInterface::export_command_interfaces() {
     std::vector<hardware_interface::CommandInterface> command_interfaces;
+    // Export joint interfaces
     for (uint i = 0; i < info_.joints.size(); i++) {
       command_interfaces.emplace_back(hardware_interface::CommandInterface(
             info_.joints[i].name, hardware_interface::HW_IF_POSITION, &position_commands_[i]));
+    }
+    // Export GPIO command interfaces for outputs 1-10
+    for (size_t i = 0; i < 16; ++i) {
+      command_interfaces.emplace_back("gpio_io", "digital_output_" + std::to_string(i + 1), &gpio_output_commands_[i]);
     }
     return command_interfaces;
   }

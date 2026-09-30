@@ -38,11 +38,23 @@ add_executable(
   src/wrench_publisher.cpp
 )
 
+add_executable(
+  ee_state_publisher
+  src/ee_state_publisher.cpp 
+)
+
 # Add include directories for the executable
 target_include_directories(ynx_robot_manager PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
+
+target_include_directories(ee_state_publisher PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+ament_target_dependencies(ee_state_publisher ${DEPENDENCIES})
 
 # Link the libraries
 ament_target_dependencies(ynx_robot_manager ${DEPENDENCIES})
@@ -52,7 +64,9 @@ ament_export_dependencies(${DEPENDENCIES})
 install(TARGETS ynx_robot_manager
   DESTINATION lib/${PROJECT_NAME}
 )
-
+install(TARGETS ee_state_publisher
+  DESTINATION lib/${PROJECT_NAME}
+)
 install(
   DIRECTORY include/
   DESTINATION include

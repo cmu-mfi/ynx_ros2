@@ -24,6 +24,7 @@ setup(
             'servo_example = ynx_examples.servo_example:main',
             'move_action_example = ynx_examples.move_action_example:main',
             'io_example = ynx_examples.io_example:main',
+            'motion_testing = ynx_examples.motion_testing:main',
         ],
     },
 )
