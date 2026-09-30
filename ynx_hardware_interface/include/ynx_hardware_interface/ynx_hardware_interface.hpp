@@ -16,15 +16,8 @@
 #include "rcs/v1/alarm_api.grpc.pb.h"
 #include "rcs/v1/monitor_api.grpc.pb.h"
 #include "rcs/v1/motion_api.grpc.pb.h"
-// #include "rcs/v1/event_api.grpc.pb.h"
-// #include "rcs/v1/file_api.grpc.pb.h"
-// #include "rcs/v1/io_api.grpc.pb.h"
-// #include "rcs/v1/job_control.grpc.pb.h"
-// #include "rcs/v1/mode_get.grpc.pb.h"
-// #include "rcs/v1/position_types.grpc.pb.h"
+#include "rcs/v1/io_api.grpc.pb.h"
 #include "rcs/v1/system_info.grpc.pb.h"
-// #include "rcs/v1/timestamp.grpc.pb.h"
-// #include "rcs/v1/variable_api.grpc.pb.h"
 
 namespace ynx_hardware_interface
 {
@@ -70,6 +63,10 @@ private:
   std::vector<double> position_states_;
   std::vector<double> previous_position_states_;
   std::vector<double> velocity_states_;
+  // Add member buffers for I/O ports 1-10
+  std::vector<double> gpio_input_states_ = std::vector<double>(16, 0.0);
+  std::vector<double> gpio_output_states_ = std::vector<double>(16, 0.0);
+  std::vector<double> gpio_output_commands_ = std::vector<double>(16, 0.0);
   
   // --- gRPC Objects ---
   std::shared_ptr<grpc::Channel> grpc_channel_;
@@ -78,6 +75,7 @@ private:
   std::unique_ptr<rcs::v1::ServoPowerControlService::Stub> servo_stub_;
   std::unique_ptr<rcs::v1::AlarmControlService::Stub> alarm_stub_;
   std::unique_ptr<rcs::v1::SystemInfoService::Stub> system_stub_;
+  std::unique_ptr<rcs::v1::IOService::Stub> io_stub_;
 };
 
 }  // namespace ynx_hardware_interface

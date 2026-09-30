@@ -41,6 +41,7 @@ namespace ynx_hardware_interface
     servo_stub_ = rcs::v1::ServoPowerControlService::NewStub(grpc_channel_);
     alarm_stub_ = rcs::v1::AlarmControlService::NewStub(grpc_channel_);
     system_stub_ = rcs::v1::SystemInfoService::NewStub(grpc_channel_);
+    io_stub_ = rcs::v1::IOService::NewStub(grpc_channel_);
 
     // 2. Perform Connection Check (Handshake)
     grpc::ClientContext context;
@@ -208,6 +209,44 @@ namespace ynx_hardware_interface
       return hardware_interface::return_type::ERROR;
     }
 
+    // Prepare I/O Request for inputs and outputs 
+    grpc::ClientContext io_context;
+    rcs::v1::GetIOStatusRequest io_req;
+    rcs::v1::GetIOStatusResponse io_res;
+    for (uint32_t addr = 10; addr < 18; ++addr) {
+      io_req.add_addresses(addr); // General Inputs
+    }
+    for (uint32_t addr = 20; addr < 28; ++addr) {
+      io_req.add_addresses(addr); // General Inputs
+    }
+    for (uint32_t addr = 10010; addr < 10018; ++addr) {
+      io_req.add_addresses(addr); // General Outputs
+    }
+    for (uint32_t addr = 10020; addr < 10028; ++addr) {
+      io_req.add_addresses(addr); // General Outputs
+    }
+    // Execute gRPC Call
+    grpc::Status io_status = io_stub_->GetIOStatus(&io_context, io_req, &io_res);
+    if (!io_status.ok()) {
+      // Handle gRPC transport level failure
+      RCLCPP_WARN_THROTTLE(
+          rclcpp::get_logger("YnxHardwareInterface"), *this->get_clock(), 2000,
+          "[IO] I/O gRPC call failed. Error Code: %d, Message: %s",
+          io_status.error_code(), io_status.error_message().c_str());
+    } else if (io_res.status() != rcs::v1::GetIOStatusResponse::STATUS_SUCCESS) {
+      // Handle controller API level status error
+      RCLCPP_WARN_THROTTLE(
+          rclcpp::get_logger("YnxHardwareInterface"), *this->get_clock(), 2000,
+          "[READ] GetIOStatus returned non-success response status: %d",
+          static_cast<int>(io_res.status()));
+    } else {
+      // Successfully update internal buffers
+      for (int i = 0; i < 16; ++i) {
+        gpio_input_states_[i] = static_cast<double>(io_res.io_response(i).value());
+        gpio_output_states_[i] = static_cast<double>(io_res.io_response(i + 16).value());
+      }
+    }
+
     return hardware_interface::return_type::OK;
   }
 
@@ -249,25 +288,66 @@ namespace ynx_hardware_interface
       return hardware_interface::return_type::ERROR;
     }
 
+    // Write IO ports
+    rcs::v1::SetIOStatusRequest set_io_req;
+    int i = 0;
+    for (uint32_t addr = 10010; addr < 10018; ++addr) {
+      auto* io_req = set_io_req.add_io_request();
+      io_req->set_address(addr);
+      io_req->set_value(static_cast<uint32_t>(gpio_output_commands_[i]));
+      i++;
+    }
+    for (uint32_t addr = 10020; addr < 10028; ++addr) {
+      auto* io_req = set_io_req.add_io_request();
+      io_req->set_address(addr);
+      io_req->set_value(static_cast<uint32_t>(gpio_output_commands_[i]));
+      i++;
+    }
+    if (set_io_req.io_request_size() > 0) {
+      grpc::ClientContext context;
+      context.set_deadline(std::chrono::system_clock::now() + std::chrono::milliseconds(200));
+      rcs::v1::SetIOStatusResponse set_io_res;
+      grpc::Status status = io_stub_->SetIOStatus(&context, set_io_req, &set_io_res);
+      if (!status.ok()) {
+        RCLCPP_ERROR(rclcpp::get_logger("YnxHardwareInterface"),
+            "[IO] SetIOStatus gRPC call failed: %s - will retry.", status.error_message().c_str());
+      } else if (set_io_res.status() != rcs::v1::SetIOStatusResponse::STATUS_SUCCESS) {
+        RCLCPP_ERROR(rclcpp::get_logger("YnxHardwareInterface"),
+            "[IO] SetIOStatus returned non-success response status: %d",
+            static_cast<int>(set_io_res.status()));
+      }
+    }
+
     return hardware_interface::return_type::OK;
   }
 
   std::vector<hardware_interface::StateInterface> YnxHardwareInterface::export_state_interfaces() {
     std::vector<hardware_interface::StateInterface> state_interfaces;
+    // Export joint interfaces
     for (uint i = 0; i < info_.joints.size(); i++) {
       state_interfaces.emplace_back(hardware_interface::StateInterface(
             info_.joints[i].name, hardware_interface::HW_IF_POSITION, &position_states_[i]));
       state_interfaces.emplace_back(hardware_interface::StateInterface(
             info_.joints[i].name, hardware_interface::HW_IF_VELOCITY, &velocity_states_[i]));
     }
+    // Export GPIO interfaces for ports 1-16
+    for (size_t i = 0; i < 16; ++i) {
+      state_interfaces.emplace_back("gpio_io", "digital_input_" + std::to_string(i + 1), &gpio_input_states_[i]);
+      state_interfaces.emplace_back("gpio_io", "digital_output_" + std::to_string(i + 1), &gpio_output_states_[i]);
+    }
     return state_interfaces;
   }
 
   std::vector<hardware_interface::CommandInterface> YnxHardwareInterface::export_command_interfaces() {
     std::vector<hardware_interface::CommandInterface> command_interfaces;
+    // Export joint interfaces
     for (uint i = 0; i < info_.joints.size(); i++) {
       command_interfaces.emplace_back(hardware_interface::CommandInterface(
             info_.joints[i].name, hardware_interface::HW_IF_POSITION, &position_commands_[i]));
+    }
+    // Export GPIO command interfaces for outputs 1-10
+    for (size_t i = 0; i < 16; ++i) {
+      command_interfaces.emplace_back("gpio_io", "digital_output_" + std::to_string(i + 1), &gpio_output_commands_[i]);
     }
     return command_interfaces;
   }
