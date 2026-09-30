@@ -14,9 +14,9 @@ def launch_setup(context):
     model = context.launch_configurations['model']
     ip = context.launch_configurations['ip']
     port = context.launch_configurations['port']
-    use_mock_hardware = context.launch_configurations['use_mock_hardware']
-    use_ft_sensor = context.launch_configurations['use_ft_sensor']
     ft_sensor_ip = context.launch_configurations['ft_sensor_ip']
+    use_mock_hardware = str(context.launch_configurations["use_mock_hardware"]).lower()
+    use_ft_sensor = str(context.launch_configurations['use_ft_sensor']).lower()
 
     # print parameters
     print("")
