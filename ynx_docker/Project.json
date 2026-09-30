@@ -1,12 +1,13 @@
 {
-  "name": "YNX_ROS2",
+  "name": "ynx_ros2",
   "description": "ROS2 package for YNX robots.",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "developer": "Carnegie Mellon University, Manufacturing Futures Institute",
   "contact": "shobhit@cmu.edu",
   "volume": "",
   "bind": "",
   "use_gpus": "true",
+  "connect_network": "ynx_ros2_network",
   "explorer_bind": "/pss/shared",
-  "forwarding_ports": "21919:22"
+  "forwarding_ports": "41999:22"
 }

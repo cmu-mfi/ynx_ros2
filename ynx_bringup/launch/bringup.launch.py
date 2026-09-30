@@ -145,7 +145,7 @@ def generate_launch_description():
     declared_arguments.append(
             DeclareLaunchArgument(
                 "use_ft_sensor", 
-                default_value="true",
+                default_value="false",
                 description="Use the netft force torque sensor."
                 )
             )
