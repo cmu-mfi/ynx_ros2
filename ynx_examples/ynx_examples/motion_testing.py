@@ -15,7 +15,7 @@ class MotionTesting(Node):
     def __init__(self):
         super().__init__('motion_testing')
 
-        self.declare_parameter('ns', 'nex10')
+        self.declare_parameter('ns', '')
         self.ns = str(self.get_parameter("ns").value) + "/"
 
         self.joint_goal_client = ActionClient(self, JointGoal, self.ns + "joint_goal")

@@ -7,13 +7,14 @@ from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution, PythonExpression 
 from launch_ros.parameter_descriptions import ParameterValue
+from launch_ros.parameter_descriptions import ParameterFile
 
 def launch_setup(context):
     # Load parameters
-    log_level = context.launch_configurations['log_level']
-    ns = context.launch_configurations['ns']
-    tf_prefix = context.launch_configurations['tf_prefix']
-    model = context.launch_configurations['model']
+    log_level           = str(context.launch_configurations['log_level']).lower()
+    ns                  = str(context.launch_configurations['ns'])
+    tf_prefix           = str(context.launch_configurations['tf_prefix'])
+    model               = str(context.launch_configurations['model'])
 
     # print parameters
     print("")
@@ -90,6 +91,8 @@ def launch_setup(context):
             }
 
     # Robot Manager
+    servo_parameters_path = os.path.join(get_package_share_directory(pkg_prefix+"bringup"), 'config', 'servo_parameters.yaml')
+    servo_parameters = ParameterFile(servo_parameters_path, allow_substs=True)
     ynx_robot_manager = Node(
         package='ynx_robot_manager',
         executable='ynx_robot_manager',
@@ -101,6 +104,7 @@ def launch_setup(context):
             kinematics,
             joint_limits,
             planning_scene_parameters,
+            servo_parameters,
             {
                 'ns': ns,
                 'tf_prefix': tf_prefix,
@@ -113,31 +117,7 @@ def launch_setup(context):
         ]
     )
     
-    # EE State Publisher
-    ee_state_publisher = Node(
-        package='ynx_robot_manager',
-        executable='ee_state_publisher',
-        namespace=ns,
-        output='screen',
-        parameters=[
-            robot_description,
-            robot_description_semantic,
-            kinematics,
-            joint_limits,
-            planning_scene_parameters,
-            {
-                'ns': ns,
-                'tf_prefix': tf_prefix,
-            },
-        ],
-        arguments=[
-            '--ros-args', 
-            '--log-level', 
-            log_level
-        ]
-    )    
-
-    return [ynx_robot_manager, ee_state_publisher]
+    return [ynx_robot_manager]
 
 def generate_launch_description():
     declared_arguments = []

@@ -1,28 +1,23 @@
-from launch.conditions import IfCondition
-from ament_index_python.packages import get_package_share_directory
-import os
-import yaml
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, SetLaunchConfiguration, OpaqueFunction, IncludeLaunchDescription 
-from launch_ros.actions import Node
-from launch_ros.parameter_descriptions import ParameterFile
-from launch_ros.substitutions import FindPackageShare
-from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution, PythonExpression 
-from launch_ros.parameter_descriptions import ParameterValue
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch_ros.substitutions import FindPackageShare
+from launch.actions import DeclareLaunchArgument, SetLaunchConfiguration, OpaqueFunction, IncludeLaunchDescription
+from launch_ros.substitutions import FindPackageShare
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression 
 
 def launch_setup(context):
     # Load parameters
-    log_level = context.launch_configurations['log_level']
-    ns = context.launch_configurations['ns']
-    model = context.launch_configurations['model']
-    ip = context.launch_configurations['ip']
-    port = context.launch_configurations['port']
-    ft_sensor_ip = context.launch_configurations['ft_sensor_ip']
-    use_mock_hardware = str(context.launch_configurations["use_mock_hardware"]).lower()
-    use_ft_sensor = str(context.launch_configurations['use_ft_sensor']).lower()
-    launch_rviz = str(context.launch_configurations["launch_rviz"]).lower()
-    launch_servo = str(context.launch_configurations["launch_servo"]).lower()
+    log_level           = str(context.launch_configurations['log_level']).lower()
+    ns                  = str(context.launch_configurations['ns'])
+    tf_prefix           = str(context.launch_configurations['tf_prefix'])
+    model               = str(context.launch_configurations['model'])
+    ip                  = str(context.launch_configurations['ip'])
+    ft_sensor_ip        = str(context.launch_configurations['ft_sensor_ip'])
+    port                = str(context.launch_configurations['port'])
+    use_mock_hardware   = str(context.launch_configurations["use_mock_hardware"]).lower()
+    use_ft_sensor       = str(context.launch_configurations["use_ft_sensor"]).lower()
+    launch_rviz         = str(context.launch_configurations["launch_rviz"]).lower()
+    launch_servo        = str(context.launch_configurations["launch_servo"]).lower()
 
     # print parameters
     print("")
@@ -33,8 +28,6 @@ def launch_setup(context):
     else:
         print(" ns:                  " + "/" + ns)
     print(" model:               " + model)
-    print(" ip:                  " + ip)
-    print(" port:                " + port)
     print(" use_mock_hardware:   " + use_mock_hardware)
     if use_mock_hardware == "false":
         print(" ip:                  " + ip)
@@ -157,7 +150,7 @@ def generate_launch_description():
                 )
             )
     declared_arguments.append(
-            DeclareLaunchArgument("launch_servo", default_value="true", description="Launch Moveit Servo?"),
+            DeclareLaunchArgument("launch_servo", default_value="false", description="Launch Moveit Servo?"),
             )
     declared_arguments.append(
             DeclareLaunchArgument("launch_rviz", default_value="false", description="Launch RViz?"),

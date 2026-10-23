@@ -19,12 +19,14 @@ setup(
     license='BSD-3-Clause',
     entry_points={
         'console_scripts': [
+            'io_example = ynx_examples.io_example:main',
             'joint_goal_example = ynx_examples.joint_goal_example:main',
             'pose_goal_example = ynx_examples.pose_goal_example:main',
-            'servo_example = ynx_examples.servo_example:main',
             'move_action_example = ynx_examples.move_action_example:main',
-            'io_example = ynx_examples.io_example:main',
             'motion_testing = ynx_examples.motion_testing:main',
+            'pose_servo_example = ynx_examples.pose_servo_example:main',
+            'twist_servo_example = ynx_examples.twist_servo_example:main',
+            'admittance_pose_servo_example = ynx_examples.admittance_pose_servo_example:main',
         ],
     },
 )

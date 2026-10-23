@@ -8,15 +8,15 @@ from launch_ros.parameter_descriptions import ParameterValue
 
 def launch_setup(context):
     # Load parameters
-    log_level = context.launch_configurations['log_level']
-    ns = context.launch_configurations['ns']
-    tf_prefix = context.launch_configurations['tf_prefix']
-    model = context.launch_configurations['model']
-    ip = context.launch_configurations['ip']
-    port = context.launch_configurations['port']
-    ft_sensor_ip = context.launch_configurations['ft_sensor_ip']
-    use_mock_hardware = str(context.launch_configurations["use_mock_hardware"]).lower()
-    use_ft_sensor = str(context.launch_configurations['use_ft_sensor']).lower()
+    log_level           = str(context.launch_configurations['log_level']).lower()
+    ns                  = str(context.launch_configurations['ns'])
+    tf_prefix           = str(context.launch_configurations['tf_prefix'])
+    model               = str(context.launch_configurations['model'])
+    ip                  = str(context.launch_configurations['ip'])
+    ft_sensor_ip        = str(context.launch_configurations['ft_sensor_ip'])
+    port                = str(context.launch_configurations['port'])
+    use_mock_hardware   = str(context.launch_configurations["use_mock_hardware"]).lower()
+    use_ft_sensor       = str(context.launch_configurations["use_ft_sensor"]).lower()
 
     # print parameters
     print("")
