@@ -1,7 +1,7 @@
 {
   "name": "ynx_ros2",
   "description": "ROS2 package for YNX robots.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "developer": "Carnegie Mellon University, Manufacturing Futures Institute",
   "contact": "shobhit@cmu.edu",
   "volume": "",
