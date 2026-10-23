@@ -28,7 +28,7 @@ namespace ynx_robot_manager {
     }
     WrenchStamped output_msg;
     output_msg.header = msg->header;
-    output_msg.wrench.force.x =   msg->wrench.force.x;
+    output_msg.wrench.force.x =  -msg->wrench.force.x;
     output_msg.wrench.force.y =  -msg->wrench.force.y;
     output_msg.wrench.force.z =   msg->wrench.force.z;
     output_msg.wrench.torque.x = -msg->wrench.torque.x;
