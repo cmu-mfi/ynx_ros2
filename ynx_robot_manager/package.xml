@@ -13,14 +13,12 @@
   <depend>moveit_ros_planning_interface</depend>
   <depend>geometry_msgs</depend>
   <depend>tf2_ros</depend>
-  <depend>rosidl_default_generators</depend>
-  <depend>rosidl_default_runtime</depend>
-  <depend>std_msgs</depend>
+  <depend>moveit_servo</depend>
   <depend>std_srvs</depend>
+  <depend>control_msgs</depend>
   <depend>robot_manager_interfaces</depend>
 
   <export>
-    <member_of_group>rosidl_interface_packages</member_of_group>
     <build_type>ament_cmake</build_type>
   </export>
 </package>
