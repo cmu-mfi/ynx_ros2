@@ -20,6 +20,12 @@ namespace ynx_robot_manager {
       const std::shared_ptr<SetIo::Request> request,
       std::shared_ptr<SetIo::Response> response)
   {
+    if (!is_robot_ready()) {
+      response->success = false;
+      response->message = "Robot is not ready.";
+      return;
+    }
+
     // Extract io parameters from the request
     int pin = request->pin;
     int state = request->state;

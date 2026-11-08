@@ -54,7 +54,10 @@ namespace ynx_robot_manager
     // Admittance Pose Servo Setup
     admittance_pose_servo_setup();
 
-    RCLCPP_INFO(this->get_logger(), "YNX Robot Manager is ready!");
+    // Readiness Setup
+    readiness_setup();
+
+    RCLCPP_INFO(this->get_logger(), "Robot Manager setup complete. Waiting for robot readiness.");
   }
 }  // namespace ynx_robot_manager
 

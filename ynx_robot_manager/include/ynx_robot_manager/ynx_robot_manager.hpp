@@ -10,6 +10,8 @@
 #include <deque>
 #include <mutex>
 #include <atomic>
+#include "controller_manager_msgs/msg/controller_manager_activity.hpp"
+#include "lifecycle_msgs/msg/state.hpp"
 // TF2
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
@@ -45,6 +47,7 @@ namespace ynx_robot_manager {
   };
     
   enum class ControlMode {
+    NOT_READY,
     IDLE,
     POSE_GOAL,
     JOINT_GOAL,
@@ -66,6 +69,7 @@ namespace ynx_robot_manager {
 
   inline const char* controlModeToString(ControlMode mode) {
     switch (mode) {
+      case ControlMode::NOT_READY: return "NOT_READY";
       case ControlMode::IDLE: return "IDLE";
       case ControlMode::POSE_GOAL: return "POSE_GOAL";
       case ControlMode::JOINT_GOAL: return "JOINT_GOAL";
@@ -101,7 +105,21 @@ namespace ynx_robot_manager {
       std::string ns_;
       std::string tf_prefix_;
       std::mutex control_mode_mutex_;
-      ControlMode control_mode_ = ControlMode::IDLE;
+      ControlMode control_mode_ = ControlMode::NOT_READY;
+
+      // Readiness
+      using ControllerManagerActivity = controller_manager_msgs::msg::ControllerManagerActivity;
+      void readiness_setup();
+      void readiness_activity_callback_(const ControllerManagerActivity::SharedPtr msg);
+      void readiness_update();
+      bool is_robot_ready();
+      rclcpp::CallbackGroup::SharedPtr readiness_cb_group_;
+      rclcpp::Subscription<ControllerManagerActivity>::SharedPtr controller_activity_subscriber_;
+      bool hardware_ready_ = false;
+      bool controllers_ready_ = false;
+      std::string hardware_component_name_;
+      std::vector<std::string> required_controllers_;
+      std::string readiness_reason_;
 
       // TF 
       std::shared_ptr<tf2_ros::Buffer> tf_buffer_;

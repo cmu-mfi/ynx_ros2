@@ -17,6 +17,12 @@ namespace ynx_robot_manager {
       const std::shared_ptr<SetPayload::Request> request,
       std::shared_ptr<SetPayload::Response> response)
   {
+    if (!is_robot_ready()) {
+      response->success = false;
+      response->message = "Robot is not ready.";
+      return;
+    }
+
     // Extract payload parameters from the request
     double mass = request->mass;
     double cog_x = request->cog.x;

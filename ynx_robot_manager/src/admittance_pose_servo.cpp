@@ -37,6 +37,11 @@ namespace ynx_robot_manager {
       const std::shared_ptr<StartAdmittancePoseServo::Request> request,
       std::shared_ptr<StartAdmittancePoseServo::Response> response)
   {
+    if (!is_robot_ready()) {
+      response->success = false;
+      response->message = "Robot is not ready.";
+      return;
+    }
     RCLCPP_INFO(this->get_logger(), "[Admittance Pose Servo] Received request to start admittance controller.");
     if (admittance_pose_servo_active_) {
       response->success = false;
@@ -129,6 +134,7 @@ namespace ynx_robot_manager {
   // --- Admittance Pose Servo - Subscription Callback --- ///
   void YnxRobotManager::admittance_pose_servo_subscription_callback_(const PoseServo::SharedPtr msg)
   {
+    if (!is_robot_ready()) return;
     if (!admittance_pose_servo_active_) {
       return;
     }

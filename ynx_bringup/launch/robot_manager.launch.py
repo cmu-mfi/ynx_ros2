@@ -111,6 +111,7 @@ def launch_setup(context):
             {
                 'ns': ns,
                 'tf_prefix': tf_prefix,
+                'hardware_component_name': model,
             },
         ],
         arguments=[

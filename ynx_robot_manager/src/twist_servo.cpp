@@ -4,6 +4,7 @@ namespace ynx_robot_manager {
 
   // --- Twist Servo - Subscription Callback --- ///
   void YnxRobotManager::twist_servo_subscription_callback_(const geometry_msgs::msg::TwistStamped::SharedPtr msg) {
+    if (!is_robot_ready()) return;
     // Make sure Robot is IDLE or already in TWIST_SERVO mode
     {
       std::lock_guard<std::mutex> lock(control_mode_mutex_);

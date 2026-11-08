@@ -22,10 +22,10 @@ namespace ynx_robot_manager {
       std::lock_guard<std::mutex> lock(control_mode_mutex_);
       if (control_mode_ != ControlMode::IDLE) {
         RCLCPP_ERROR(this->get_logger(),
-            "[Park Service] Robot is already being controlled (current mode: %s).",
+            "[Park Service] Robot is not ready or already being controlled (current mode: %s).",
             controlModeToString(control_mode_));
         response->success = false;
-        response->message = "Robot is already being controlled.";
+        response->message = "Robot is not ready or already being controlled.";
         return;
       }
       control_mode_ = ControlMode::PARK;
@@ -63,6 +63,7 @@ namespace ynx_robot_manager {
       RCLCPP_ERROR(this->get_logger(), "[Park Service] Execution failed.");
       response->success = false;
       response->message = "Execution failed or was cancelled.";
+      return;
     }
     // configure park moveit move
     // configure park moveit move
