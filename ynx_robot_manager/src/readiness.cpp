@@ -1,6 +1,5 @@
 #include "ynx_robot_manager/ynx_robot_manager.hpp"
 #include <algorithm>
-#include <cstdlib>
 
 namespace ynx_robot_manager {
 
@@ -61,7 +60,8 @@ namespace ynx_robot_manager {
     }
     if (readiness_lost) {
       RCLCPP_FATAL(this->get_logger(), "[Readiness] %s Exiting robot manager.", reason.c_str());
-      std::exit(EXIT_FAILURE);
+      rclcpp::shutdown(this->get_node_base_interface()->get_context(), "Robot readiness lost");
+      return;
     }
     if (reason != readiness_reason_) {
       if (reason.empty()) {
