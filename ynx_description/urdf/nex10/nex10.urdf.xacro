@@ -14,13 +14,21 @@
   <xacro:nex10_ros2_control_macro tf_prefix="$(arg tf_prefix)" use_mock_hardware="$(arg use_mock_hardware)" ip="$(arg ip)" port="$(arg port)"/>
 
   <xacro:if value="$(arg use_ft_sensor)">
-    <xacro:include filename="$(find netft_hardware_interface)/config/netft.ros2_control_macro.xacro" />
-    <xacro:netft_ros2_control_macro tf_prefix="$(arg tf_prefix)" netft_ip="$(arg ft_sensor_ip)" cpf="600000" cpt="1000000"/>
     <link name="$(arg tf_prefix)ft_frame"/>
     <joint name="$(arg tf_prefix)flange-ft_frame" type="fixed">
       <origin xyz="0 0 -0.0382" rpy="${radians(0)} 0 ${radians(90)}"/>
       <parent link="$(arg tf_prefix)flange"/>
       <child link="$(arg tf_prefix)ft_frame"/>
     </joint>
+    <xacro:include filename="$(find netft_hardware_interface)/config/netft.ros2_control_macro.xacro" />
+    <xacro:netft_ros2_control_macro tf_prefix="$(arg tf_prefix)" netft_ip="$(arg ft_sensor_ip)" cpf="600000" cpt="1000000"/>
   </xacro:if>
+  <xacro:unless value="$(arg use_ft_sensor)">
+    <link name="$(arg tf_prefix)ft_frame"/>
+    <joint name="$(arg tf_prefix)flange-ft_frame" type="fixed">
+      <origin xyz="0 0 0.0" rpy="${radians(0)} 0 ${radians(90)}"/>
+      <parent link="$(arg tf_prefix)flange"/>
+      <child link="$(arg tf_prefix)ft_frame"/>
+    </joint>
+  </xacro:unless>
 </robot>
