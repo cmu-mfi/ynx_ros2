@@ -9,6 +9,13 @@ This workspace is divided into two primary packages:
   * **`ynx_examples`**: Contains sample Python nodes and scripts demonstrating how to send joint and pose goals, interact with the MoveIt2 API, use moveit_servo and perform basic operations with the robot using ROS 2.
   * **`ynx_robot_manager`**: Contains the ynx_robot_manager node. It abstracts the moveit interface and handles other robot specific tasks like IO, payload configuration and force sensor filtering.
 
+The robot manager publishes `std_msgs/msg/Bool` on `/<ns>/ready`: initially
+`false`, then the result of all readiness checks whenever status feedback arrives.
+The reliable, transient-local publisher retains the latest value for late
+subscribers. Readiness requires active hardware and all required controllers.
+The manager stays running through readiness loss and recovery; new commands and
+Servo output are gated while it is not ready.
+
 ## ⚙️ Prerequisites and Dependencies
 
 This repository has been tested on:

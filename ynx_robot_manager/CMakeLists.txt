@@ -17,6 +17,7 @@ set(DEPENDENCIES
   rclcpp_action
   controller_manager_msgs
   lifecycle_msgs
+  std_msgs
   tf2_ros
   robot_manager_interfaces
   std_srvs

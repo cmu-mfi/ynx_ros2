@@ -13,6 +13,7 @@
 #include <atomic>
 #include "controller_manager_msgs/msg/controller_manager_activity.hpp"
 #include "lifecycle_msgs/msg/state.hpp"
+#include "std_msgs/msg/bool.hpp"
 // TF2
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
@@ -62,9 +63,10 @@ namespace ynx_robot_manager {
   struct ModeReset {
     std::mutex &mtx;
     ControlMode &mode;
+    const bool &ready;
     ~ModeReset() {
       std::lock_guard<std::mutex> lock(mtx);
-      mode = ControlMode::IDLE;
+      mode = ready ? ControlMode::IDLE : ControlMode::NOT_READY;
     }
   };
 
@@ -107,6 +109,7 @@ namespace ynx_robot_manager {
       std::string tf_prefix_;
       std::mutex control_mode_mutex_;
       ControlMode control_mode_ = ControlMode::NOT_READY;
+      bool robot_ready_ = false;  // Protected by control_mode_mutex_.
 
       // Readiness
       using ControllerManagerActivity = controller_manager_msgs::msg::ControllerManagerActivity;
@@ -115,6 +118,7 @@ namespace ynx_robot_manager {
       void readiness_update();
       bool is_robot_ready();
       rclcpp::CallbackGroup::SharedPtr readiness_cb_group_;
+      rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr ready_publisher_;
       rclcpp::Subscription<ControllerManagerActivity>::SharedPtr controller_activity_subscriber_;
       bool hardware_ready_ = false;
       bool controllers_ready_ = false;
